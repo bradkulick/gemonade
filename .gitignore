@@ -10,6 +10,12 @@ __pycache__/
 # Geode Local State (if created inside repo)
 .geode/
 state/
+secrets.env
+
+# Personal / Site-Specific Data (Do Not Commit to Core)
+knowledge/
+personas/thm.md
+user_tools/
 
 # User Config (should not be in repo, but just in case)
 config.env
