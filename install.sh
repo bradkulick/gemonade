@@ -13,13 +13,13 @@ echo "💎 Installing Geode Framework..."
 mkdir -p "$BIN_DIR"
 
 # 2. Symlink the geode launcher
-echo "🔗 Linking 'geode' command to $BIN_DIR/geode"
+echo "🔗 Linking 'geode' command to ~/bin/geode"
 ln -sf "$GEODE_ROOT/bin/geode" "$BIN_DIR/geode"
 chmod +x "$GEODE_ROOT/bin/geode"
 
 # 3. Initialize default config if missing
 if [ ! -f "$CONFIG_FILE" ]; then
-    echo "📝 Creating default config at $CONFIG_FILE"
+    echo "📝 Creating default config at ~/.geode_config"
     cat <<EOF > "$CONFIG_FILE"
 # Geode User Configuration
 G_KNOWLEDGE_DIR="\$HOME/gemini_knowledge"
@@ -32,7 +32,9 @@ echo ""
 echo "✅ Geode Installation Complete!"
 echo "-------------------------------------------------------"
 echo "To get started:"
-echo "1. Ensure $BIN_DIR is in your PATH."
+echo "1. Ensure ~/bin is in your PATH."
+echo "   Run this command now: export PATH=\"\$HOME/bin:\$PATH\""
+echo "   (Add that line to your ~/.bashrc to make it permanent)"
 echo "2. Run 'geode list' to see available personas."
 echo "3. Run 'geode sys' to meet your framework administrator."
 echo "-------------------------------------------------------"

@@ -4,7 +4,15 @@
 # Version: 0.1.0
 
 # 1. Configuration & Paths
-GEODE_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Resolve the true path of the script (handling symlinks)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do 
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" 
+done
+GEODE_HOME="$( cd -P "$( dirname "$SOURCE" )/.." >/dev/null 2>&1 && pwd )"
+
 CONFIG_FILE="$HOME/.geode_config"
 STATE_DIR="$HOME/.geode"
 LAST_CLEAN_FILE="$STATE_DIR/last_clean"
