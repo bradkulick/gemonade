@@ -63,7 +63,16 @@ usage() {
 # 4. Command: List Personas
 list_personas() {
     echo "Available Geode Personas:"
-    ls "$G_PERSONA_DIR"/*.md 2>/dev/null | xargs -n 1 basename | sed 's/\.md//' | sed 's/^/  - /'
+    for f in "$G_PERSONA_DIR"/*.md; do
+        [ -e "$f" ] || continue
+        name=$(basename "$f" .md)
+        # Extract Objective, remove markdown bolding and "Objective:" label
+        desc=$(grep -m 1 -- "- \*\*Objective:\*\*" "$f" | sed -E 's/.*- \*\*Objective:\*\* //')
+        if [ -z "$desc" ]; then
+             desc="No objective defined."
+        fi
+        printf "  - %-10s : %s\n" "$name" "$desc"
+    done
 }
 
 # 5. Command: Run Persona
