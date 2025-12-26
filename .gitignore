@@ -20,7 +20,10 @@ personas/*
 
 # Knowledge Base
 knowledge/
-user_tools/
+
+# User Tools: Ignore ALL by default, allow gitkeep so folder exists
+user_tools/*
+!user_tools/.gitkeep
 
 # User Config (should not be in repo, but just in case)
 config.env
