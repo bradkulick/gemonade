@@ -25,10 +25,22 @@ Launch a specific persona (Geode will handle the session logging automatically).
 geode [persona_name]
 ```
 
+**Listing Available Personas:**
+See what personas are available and their objectives:
+```bash
+geode list
+```
+*Output:*
+```text
+Available Geode Personas:
+  - general    : Provide high-quality thought partnership across any domain.
+  - sys        : Assist the user in managing personas, configuring the environment, and maintaining the system.
+```
+
 **Examples:**
 ```bash
-geode sys      # Launch the System Administrator (Framework Maintenance)
-geode general  # Launch the General Assistant
+geode sys      # Launch the framework administrator
+geode general  # Launch the general knowledge partner
 geode coding   # (If created) Launch a specialized coding partner
 ```
 
