@@ -34,7 +34,7 @@ geode list
 ```text
 Available Geode Personas:
   - general    : Provide high-quality thought partnership across any domain.
-  - sys        : Assist the user in managing personas, configuring the environment, and maintaining the system.
+  - sys        : Assist the user in managing personas, configuring the environment, and maintaining the Geode framework.
 ```
 
 **Examples:**
