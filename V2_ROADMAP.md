@@ -15,6 +15,7 @@ Currently, all Geode personas share access to a flat `~/gemini_tools` directory.
 
 ## 3. Advanced Memory & Context
 - **RAG Integration:** Beyond just reading the "last session," integrate local vector search to allow Geode to query its entire session history across all personas.
+- **Shared Blueprints:** Support for shared `knowledge/blueprints/` that can be committed to the core repo (e.g., standard architectural patterns) while keeping user-specific blueprints private.
 - **Blueprint Lifecycle:** Logic for the `sys` persona to proactively identify when blueprints (like network maps) are outdated based on recent tool outputs.
 
 ## 4. Automation & Maintenance

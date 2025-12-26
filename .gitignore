@@ -13,8 +13,13 @@ state/
 secrets.env
 
 # Personal / Site-Specific Data (Do Not Commit to Core)
+# Personas: Ignore ALL by default, allow ONLY Core personas
+personas/*
+!personas/sys.md
+!personas/general.md
+
+# Knowledge Base
 knowledge/
-personas/thm.md
 user_tools/
 
 # User Config (should not be in repo, but just in case)
