@@ -1,0 +1,16 @@
+# System
+.DS_Store
+*~
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Geode Local State (if created inside repo)
+.geode/
+state/
+
+# User Config (should not be in repo, but just in case)
+config.env
+.geode_config

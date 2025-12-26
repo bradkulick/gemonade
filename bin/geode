@@ -1,0 +1,127 @@
+#!/bin/bash
+
+# Geode: The Gemini CLI Persona Wrapper
+# Version: 0.1.0
+
+# 1. Configuration & Paths
+GEODE_HOME="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CONFIG_FILE="$HOME/.geode_config"
+STATE_DIR="$HOME/.geode"
+LAST_CLEAN_FILE="$STATE_DIR/last_clean"
+
+# Default Paths (Can be overridden in CONFIG_FILE)
+G_KNOWLEDGE_DIR="$HOME/gemini_knowledge"
+G_PERSONA_DIR="$GEODE_HOME/personas"
+G_CORE_PERSONA="$GEODE_HOME/core/CORE_PERSONA.md"
+G_SAVER_SCRIPT="$GEODE_HOME/tools/save_session.py"
+
+# Load user config if it exists
+if [ -f "$CONFIG_FILE" ]; then
+    source "$CONFIG_FILE"
+fi
+
+# 2. Lazy Background Cleanup
+# Runs once every 24 hours in the background
+mkdir -p "$STATE_DIR"
+current_time=$(date +%s)
+last_clean_time=0
+if [ -f "$LAST_CLEAN_FILE" ]; then
+    last_clean_time=$(cat "$LAST_CLEAN_FILE" 2>/dev/null)
+fi
+
+# 86400 seconds = 24 hours
+if [ $((current_time - last_clean_time)) -gt 86400 ]; then
+    if [ -f "$GEODE_HOME/tools/cleanup_sessions.sh" ]; then
+        bash "$GEODE_HOME/tools/cleanup_sessions.sh" > /dev/null 2>&1 &
+        echo $current_time > "$LAST_CLEAN_FILE"
+    fi
+fi
+
+# 3. Helper: Display Usage
+usage() {
+    echo "Usage: geode [command] [persona]"
+    echo ""
+    echo "Commands:"
+    echo "  run <persona>   Start a session with a specific persona (default command)"
+    echo "  list            List available personas"
+    echo "  config          Show current configuration"
+    echo "  help            Show this help message"
+    echo ""
+    echo "Example:"
+    echo "  geode thm"
+    exit 1
+}
+
+# 4. Command: List Personas
+list_personas() {
+    echo "Available Geode Personas:"
+    ls "$G_PERSONA_DIR"/*.md 2>/dev/null | xargs -n 1 basename | sed 's/\.md//' | sed 's/^/  - /'
+}
+
+# 5. Command: Run Persona
+run_persona() {
+    local persona=$1
+    local persona_file="$G_PERSONA_DIR/$persona.md"
+
+    # Default to 'general' if no persona provided
+    if [ -z "$persona" ]; then
+        persona="general"
+        persona_file="$G_PERSONA_DIR/general.md"
+    fi
+
+    # Check if persona exists
+    if [ ! -f "$persona_file" ]; then
+        echo "❌ Persona '$persona' not found in $G_PERSONA_DIR"
+        exit 1
+    fi
+
+    echo "💎 Initializing Geode: [$persona]"
+    
+    # Ensure session directory and state directory exist
+    mkdir -p "$G_KNOWLEDGE_DIR/sessions/$persona"
+    mkdir -p "$STATE_DIR"
+
+    # Combine Core + Persona for the system prompt
+    # Use PID ($$) to ensure uniqueness across multiple concurrent terminals
+    local active_system_md="$STATE_DIR/system_${persona}_$$.md"
+    cat "$G_CORE_PERSONA" "$persona_file" > "$active_system_md"
+
+    # Ensure temp file is deleted on exit (clean up)
+    trap "rm -f '$active_system_md'" EXIT
+
+    # Launch Gemini CLI
+    GEMINI_SYSTEM_MD="$active_system_md" gemini
+
+    # Post-session: Run the Saver
+    if [ -f "$G_SAVER_SCRIPT" ]; then
+        python3 "$G_SAVER_SCRIPT" "$G_KNOWLEDGE_DIR/sessions/$persona"
+    fi
+}
+
+# 6. Argument Parsing
+case "$1" in
+    list)
+        list_personas
+        ;;
+    config)
+        echo "Geode Configuration:"
+        echo "  Home:          $GEODE_HOME"
+        echo "  Knowledge:     $G_KNOWLEDGE_DIR"
+        echo "  Personas:      $G_PERSONA_DIR"
+        echo "  Core Logic:    $G_CORE_PERSONA"
+        ;;
+    help|--help|-h)
+        usage
+        ;;
+    run)
+        shift
+        run_persona "$1"
+        ;;
+    "")
+        run_persona "general"
+        ;;
+    *)
+        # If the first arg is not a command, treat it as a persona name
+        run_persona "$1"
+        ;;
+esac
