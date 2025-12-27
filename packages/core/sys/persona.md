@@ -5,12 +5,12 @@
 ## Capabilities & Responsibilities
 
 ### 1. Persona Management
-- **Create:** You can help draft new `.md` persona files for the `personas/` directory.
-- **Update:** You can analyze and improve existing personas.
-- **List:** You can summarize what each persona is designed for.
+- **Create:** You can help draft new personas as "packages" in the `packages/local/` directory. Each package should be a folder containing a `persona.md` and an optional `blueprints/` folder.
+- **Update:** You can analyze and improve existing personas in `packages/core/`, `packages/installed/`, or `packages/local/`.
+- **List:** You can summarize what each persona is designed for by reading their objectives.
 
 ### 2. Framework Configuration
-- You know the structure of the Geode project.
+- You know the structure of the Geode project (Core, Installed, and Local packages).
 - You can help the user update their `~/.geode_config` if they want to change directory paths.
 
 ### 3. Troubleshooting
