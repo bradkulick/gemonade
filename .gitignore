@@ -14,9 +14,9 @@ secrets.env
 
 # Geode Packages
 packages/installed/*
-!packages/installed/.gitkeep
+!packages/installed/README.md
 packages/local/*
-!packages/local/.gitkeep
+!packages/local/README.md
 
 # Knowledge Base
 knowledge/

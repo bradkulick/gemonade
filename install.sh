@@ -9,6 +9,33 @@ CONFIG_FILE="$HOME/.geode_config"
 
 echo "💎 Installing Geode Framework..."
 
+# 0. Prerequisite Check
+echo "🔍 Checking dependencies..."
+MISSING_DEPS=0
+
+if ! command -v node &> /dev/null; then
+    echo "⚠️  Node.js is not installed."
+    MISSING_DEPS=1
+fi
+
+if ! command -v python3 &> /dev/null; then
+    echo "⚠️  Python 3 is not installed."
+    MISSING_DEPS=1
+fi
+
+if ! command -v gemini &> /dev/null; then
+    echo "⚠️  Google Gemini CLI (@google/gemini-cli) is not installed."
+    echo "   Install it via: npm install -g @google/gemini-cli"
+    MISSING_DEPS=1
+fi
+
+if [ $MISSING_DEPS -eq 1 ]; then
+    echo "❌ Missing dependencies detected. Please install them and run this script again."
+    exit 1
+else
+    echo "✅ Dependencies found."
+fi
+
 # 1. Create directory for symlinks if it doesn't exist
 mkdir -p "$BIN_DIR"
 

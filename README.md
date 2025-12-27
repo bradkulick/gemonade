@@ -12,6 +12,15 @@ Standard AI interactions are stateless. Geode introduces a "Memory Bank" and a "
 
 ## 🛠️ Quick Start
 
+### Prerequisites
+Geode is a wrapper around existing tools. Ensure you have the following installed:
+*   **Python 3.x** (for session management)
+*   **Node.js & npm**
+*   **Google Gemini CLI:**
+    ```bash
+    npm install -g @google/gemini-cli
+    ```
+
 ### 1. Installation
 Run the installer to link the `geode` command to your path and generate the default config.
 ```bash
