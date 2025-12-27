@@ -12,11 +12,11 @@ __pycache__/
 state/
 secrets.env
 
-# Personal / Site-Specific Data (Do Not Commit to Core)
-# Personas: Ignore ALL by default, allow ONLY Core personas
-personas/*
-!personas/sys.md
-!personas/general.md
+# Geode Packages
+packages/installed/*
+!packages/installed/.gitkeep
+packages/local/*
+!packages/local/.gitkeep
 
 # Knowledge Base
 knowledge/
