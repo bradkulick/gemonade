@@ -1,76 +1,83 @@
 # Geode Architecture & Implementation Guide
 
-This document details the technical implementation of the Geode Framework. It explains how the launcher, memory system, and personas interact to create a stateful AI environment.
+This document details the technical implementation of the Geode Framework. It explains how the launcher, memory system, and package architecture interact to create a stateful AI environment.
 
 ## 1. Directory Structure
 
-Geode separates **System Logic** (The Framework) from **User Data** (Knowledge).
+Geode adopts a "Unified Package" architecture, treating all identities—from core system admins to community extensions—as standardized packages.
 
 ### A. The Framework (`geode/`)
-This repository contains the immutable logic of the system.
+This repository contains the system logic and package definitions.
 ```text
 geode/
 ├── bin/
 │   └── geode               # The Launcher (Bash script)
 ├── core/
 │   └── CORE_PERSONA.md     # Universal standards (Inherited by all Personas)
-├── personas/               # The Identity Files
-│   ├── sys.md              # Framework Administrator
-│   └── general.md          # Default Assistant
-├── tools/
-│   ├── save_session.py     # The Clean Logger
-│   └── cleanup_sessions.sh # The Maintenance Script
-└── install.sh              # Setup Utility
+├── packages/               # The Identity Packages
+│   ├── core/               # Immutable System Personas (sys, general)
+│   ├── installed/          # Community/3rd-Party Personas (Git Ignored)
+│   └── local/              # User-Created Private Personas (Git Ignored)
+├── knowledge/              # The "Active State"
+│   └── sessions/           # Session Logs
+├── user_tools/             # Global User Scripts
+└── tools/                  # System Maintenance Scripts
 ```
 
-### B. The Knowledge Base (`~/gemini_knowledge/`)
-This directory is created in the user's home folder and stores the state.
+### B. The Package Model
+Every persona is a self-contained directory within `packages/`.
 ```text
-~/gemini_knowledge/
-├── blueprints/             # Static reference files (e.g., Network Maps)
-└── sessions/               # The "Memory Bank"
-    ├── sys/                # Logs for the Admin persona
-    ├── general/            # Logs for the General persona
-    └── archive/            # Rotated logs (>30 days old)
+packages/local/my-persona/
+├── persona.md              # The Identity Prompt
+├── tools/                  # (Optional) Python scripts specific to this persona
+└── blueprints/             # (Optional) Reference docs/knowledge
 ```
 
 ## 2. Core Components
 
 ### A. The Launcher (`bin/geode`)
 The `geode` command is the single entry point. It orchestrates the session lifecycle:
-1.  **Resolution:** Identifies the requested persona (e.g., `thm`).
-2.  **Context Injection:** It dynamically concatenates `core/CORE_PERSONA.md` + `personas/thm.md` into a temporary system prompt (`~/.geode/system_thm_PID.md`).
-    *   *Why?* This ensures every persona inherits the Core Standards (Startup protocols, Memory rules) without code duplication.
-    *   *Safety:* Uses Process IDs (PID) to allow multiple concurrent Geode sessions in different terminals.
-3.  **Execution:** Launches the native `gemini` CLI with the injected system prompt.
-4.  **Teardown:** Upon exit, it triggers the Memory Saver.
+
+1.  **Resolution & Priority:** Identifies the requested persona by searching namespaces in specific order:
+    *   **Local** (`packages/local/`): Highest priority. Allows user overrides.
+    *   **Installed** (`packages/installed/`): Community packages.
+    *   **Core** (`packages/core/`): Lowest priority. Protected system identities.
+    *   *Note:* The `sys` and `general` namespaces are reserved and strictly served from `core`.
+
+2.  **Context Injection:** It dynamically concatenates `core/CORE_PERSONA.md` + `packages/.../persona.md`.
+
+3.  **Tool Discovery:** If the resolved package contains a `tools/` directory, that path is automatically prepended to the environment `$PATH`, granting the persona access to its specific capabilities.
+
+4.  **Execution & Teardown:** Launches the native `gemini` CLI and triggers the Memory Saver upon exit.
 
 ### B. The Memory Saver (`tools/save_session.py`)
-Standard terminal recording (`script`) captures "noise" (spinners, progress bars, backspaces). Geode uses a custom Python hook that:
+Standard terminal recording (`script`) captures "noise". Geode uses a custom Python hook that:
 1.  Parses the internal JSON logs from the Gemini CLI.
 2.  Extracts the clean conversation (User Prompt + AI Response).
 3.  Formats "Thought Processes" into collapsible HTML/Markdown details.
-4.  Saves the clean file to `~/gemini_knowledge/sessions/[persona]/`.
+4.  Saves the clean file to `knowledge/sessions/[persona]/`.
 
-### C. The Maintenance Cycle (`tools/cleanup_sessions.sh`)
-To prevent the "active memory" from becoming too large (which slows down reading), Geode includes a **Lazy Maintenance Trigger**:
-*   Every time `geode` runs, it checks `~/.geode/last_clean`.
-*   If >24 hours have passed, it spawns `cleanup_sessions.sh` in the background.
-*   Old sessions (>30 days) are moved to `archive/YYYY-MM/`.
-
-## 3. Workflow & Evolution
+## 3. Workflow & Extension
 
 ### The "System Admin" Persona (`sys`)
 Geode includes a built-in "Meta-Persona" called `sys`. It has explicit knowledge of this architecture.
 *   **Role:** Architect & Maintainer.
 *   **Capabilities:**
-    *   It can read and edit the `geode` launcher script.
-    *   It can create new files in `personas/`.
-    *   It can diagnose issues with `save_session.py`.
+    *   It knows how to create new packages in `packages/local/`.
+    *   It can diagnose issues with the launcher or tools.
 
-### Evolving the System
-The intended workflow for upgrading Geode is **User-Led Evolution**:
-1.  **Identify Friction:** "Geode is failing to save logs when I use Ctrl+C."
-2.  **Consult Admin:** `geode sys` -> "Analyze the launcher script and fix the trap logic."
-3.  **Review PR:** The AI proposes the Bash code fix.
-4.  **Apply:** The user applies the fix (or uses a tool to write it).
+### Extending vs. Overriding
+Geode supports two methods for modifying behavior:
+
+1.  **Override (Shadowing):**
+    *   Creating a package with the same name in a higher-priority namespace (e.g., `packages/local/aws`) completely hides the lower-priority version (`packages/installed/aws`).
+    *   *Constraint:* You cannot override `core` packages (`sys`, `general`).
+
+2.  **Extension (Inheritance):**
+    *   Create a new package (e.g., `packages/local/my-general`) and reference the original in the prompt:
+        ```markdown
+        # My General
+        {{LOAD: ../../../core/general/persona.md}}
+        - **Extra Rule:** Always speak in Haiku.
+        ```
+    *   *Note:* While Geode doesn't have a native macro language yet, users can manually inherit logic by referencing files or copying base instructions.

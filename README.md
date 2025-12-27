@@ -7,8 +7,8 @@ Standard AI interactions are stateless. Geode introduces a "Memory Bank" and a "
 
 *   **Deep Context:** Every session is automatically recorded to a structured Knowledge Base.
 *   **Modular Identity:** Switch instantly between specialized personas (e.g., `sys`, `coding`, `network`) with a single command.
+*   **Unified Packages:** Community and local personas are treated as standardized packages that can bundle their own tools and knowledge.
 *   **Local Power:** Operates within your shell, allowing direct interaction with local files, tools, and private network devices.
-*   **Self-Healing:** The system includes an admin persona (`sys`) capable of diagnosing errors and rewriting its own code.
 
 ## 🛠️ Quick Start
 
@@ -41,7 +41,7 @@ Available Geode Personas:
 ```bash
 geode sys      # Launch the framework administrator
 geode general  # Launch the general knowledge partner
-geode coding   # (If created) Launch a specialized coding partner
+geode thm      # Launch a local private persona (if created)
 ```
 
 ### 3. Creating New Personas
@@ -50,16 +50,18 @@ Just ask the system admin!
 geode sys
 > "Create a new persona for cooking called 'chef'. It should be terse and focus on French cuisine."
 ```
+*Note: New personas are created as packages in `packages/local/`.*
 
 ## 🧠 Core Philosophy
 
 ### A. The "Geode" Metaphor
 A Geode is a protective shell containing distinct, valuable crystals. Similarly, this framework provides the "Shell" (launcher, logging, configuration) that protects and organizes your "Gems" (Personas).
 
-### B. Stateful Memory
-Geode automatically captures every interaction in clean Markdown format (stripping out terminal noise) and stores it in `~/gemini_knowledge/sessions/`.
-*   **Startup Scan:** When a persona launches, it reviews recent session files to recall past context.
-*   **Archives:** The system automatically cleans up and archives logs older than 30 days to keep the active memory fresh.
+### B. Unified Package Architecture
+Geode treats every identity as a "Package"—a folder containing the persona's prompt, tools, and blueprints.
+*   **Core:** Immutable system identities (`sys`, `general`).
+*   **Installed:** Community packages downloaded from external sources.
+*   **Local:** Your private, site-specific identities.
 
 ### C. Proactive Evolution ("The Pull Request")
 Geode is designed to be self-improving. If a persona identifies a limitation in its own instructions or tools, it is authorized to draft a "Pull Request"—a proposed code change that the user can accept to permanently upgrade the system's capabilities.
