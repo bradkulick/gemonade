@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Geode Session Maintenance Script
+# Gemonade Session Maintenance Script
 # Archives session logs older than a specified retention period.
 # Logic: Argument > Env Var > Default (30)
 
 # Configuration
-CONFIG_FILE="$HOME/.geode_config"
+CONFIG_FILE="$HOME/.gemonade_config"
 
 # 1. Load User Config (for Defaults)
 if [ -f "$CONFIG_FILE" ]; then
@@ -17,8 +17,8 @@ fi
 if [ -n "$1" ]; then
     RETENTION_DAYS="$1"
 # Priority 2: Environment Variable (from config)
-elif [ -n "$GEODE_RETENTION_DAYS" ]; then
-    RETENTION_DAYS="$GEODE_RETENTION_DAYS"
+elif [ -n "$GEMONADE_RETENTION_DAYS" ]; then
+    RETENTION_DAYS="$GEMONADE_RETENTION_DAYS"
 # Priority 3: Hard Default
 else
     RETENTION_DAYS="30"
@@ -31,7 +31,7 @@ SESSION_ROOT="$KNOWLEDGE_ROOT/sessions"
 ARCHIVE_ROOT="$SESSION_ROOT/archive/$(date +%Y-%m)"
 
 # 4. Execution
-echo "🧹 Geode Cleanup: Moving sessions older than $RETENTION_DAYS days..."
+echo "🧹 Gemonade Cleanup: Moving sessions older than $RETENTION_DAYS days..."
 echo "   Source:  $SESSION_ROOT"
 echo "   Archive: $ARCHIVE_ROOT"
 

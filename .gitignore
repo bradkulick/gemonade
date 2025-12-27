@@ -7,12 +7,12 @@
 __pycache__/
 *.py[cod]
 
-# Geode Local State (if created inside repo)
-.geode/
+# Gemonade Local State (if created inside repo)
+.gemonade/
 state/
 secrets.env
 
-# Geode Packages
+# Gemonade Packages
 packages/installed/*
 !packages/installed/README.md
 packages/local/*
@@ -30,4 +30,4 @@ versions/
 
 # User Config (should not be in repo, but just in case)
 config.env
-.geode_config
+.gemonade_config

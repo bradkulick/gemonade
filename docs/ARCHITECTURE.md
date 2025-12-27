@@ -1,17 +1,17 @@
-# Geode Architecture & Implementation Guide
+# Gemonade Architecture & Implementation Guide
 
-This document details the technical implementation of the Geode Framework. It explains how the launcher, memory system, and package architecture interact to create a stateful AI environment.
+This document details the technical implementation of the Gemonade Framework. It explains how the launcher, memory system, and package architecture interact to create a stateful AI environment.
 
 ## 1. Directory Structure
 
-Geode adopts a "Unified Package" architecture, treating all identities—from core system admins to community extensions—as standardized packages.
+Gemonade adopts a "Unified Package" architecture, treating all identities—from core system admins to community extensions—as standardized packages.
 
-### A. The Framework (`geode/`)
+### A. The Framework (`gemonade/`)
 This repository contains the system logic and package definitions.
 ```text
-geode/
+gemonade/
 ├── bin/
-│   └── geode               # The Launcher (Bash script)
+│   └── gemonade               # The Launcher (Bash script)
 ├── core/
 │   └── CORE_PERSONA.md     # Universal standards (Inherited by all Personas)
 ├── packages/               # The Identity Packages
@@ -35,8 +35,8 @@ packages/local/my-persona/
 
 ## 2. Core Components
 
-### A. The Launcher (`bin/geode`)
-The `geode` command is the single entry point. It orchestrates the session lifecycle:
+### A. The Launcher (`bin/gemonade`)
+The `gemonade` command is the single entry point. It orchestrates the session lifecycle:
 
 1.  **Resolution & Priority:** Identifies the requested persona by searching namespaces in specific order:
     *   **Local** (`packages/local/`): Highest priority. Allows user overrides.
@@ -51,7 +51,7 @@ The `geode` command is the single entry point. It orchestrates the session lifec
 4.  **Execution & Teardown:** Launches the native `gemini` CLI and triggers the Memory Saver upon exit.
 
 ### B. The Memory Saver (`tools/save_session.py`)
-Standard terminal recording (`script`) captures "noise". Geode uses a custom Python hook that:
+Standard terminal recording (`script`) captures "noise". Gemonade uses a custom Python hook that:
 1.  Parses the internal JSON logs from the Gemini CLI.
 2.  Extracts the clean conversation (User Prompt + AI Response).
 3.  Formats "Thought Processes" into collapsible HTML/Markdown details.
@@ -60,14 +60,14 @@ Standard terminal recording (`script`) captures "noise". Geode uses a custom Pyt
 ## 3. Workflow & Extension
 
 ### The "System Admin" Persona (`sys`)
-Geode includes a built-in "Meta-Persona" called `sys`. It has explicit knowledge of this architecture.
+Gemonade includes a built-in "Meta-Persona" called `sys`. It has explicit knowledge of this architecture.
 *   **Role:** Architect & Maintainer.
 *   **Capabilities:**
     *   It knows how to create new packages in `packages/local/`.
     *   It can diagnose issues with the launcher or tools.
 
 ### Extending vs. Overriding
-Geode supports two methods for modifying behavior:
+Gemonade supports two methods for modifying behavior:
 
 1.  **Override (Shadowing):**
     *   Creating a package with the same name in a higher-priority namespace (e.g., `packages/local/aws`) completely hides the lower-priority version (`packages/installed/aws`).
@@ -80,4 +80,4 @@ Geode supports two methods for modifying behavior:
         {{LOAD: ../../../core/general/persona.md}}
         - **Extra Rule:** Always speak in Haiku.
         ```
-    *   *Note:* While Geode doesn't have a native macro language yet, users can manually inherit logic by referencing files or copying base instructions.
+    *   *Note:* While Gemonade doesn't have a native macro language yet, users can manually inherit logic by referencing files or copying base instructions.

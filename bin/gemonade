@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Geode: The Gemini CLI Persona Wrapper
+# Gemonade: The Gemini CLI Persona Wrapper
 # Version: 0.2.0-pre (V1.5 Unified Packages)
 
 # 1. Configuration & Paths
@@ -10,17 +10,17 @@ while [ -h "$SOURCE" ]; do
   SOURCE="$(readlink "$SOURCE")"
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" 
 done
-GEODE_HOME="$( cd -P "$( dirname "$SOURCE" )/.." >/dev/null 2>&1 && pwd )"
+GEMONADE_HOME="$( cd -P "$( dirname "$SOURCE" )/.." >/dev/null 2>&1 && pwd )"
 
-CONFIG_FILE="$HOME/.geode_config"
-STATE_DIR="$HOME/.geode"
+CONFIG_FILE="$HOME/.gemonade_config"
+STATE_DIR="$HOME/.gemonade"
 LAST_CLEAN_FILE="$STATE_DIR/last_clean"
 
 # Default Paths (Can be overridden in CONFIG_FILE)
-G_KNOWLEDGE_DIR="$GEODE_HOME/knowledge"
-G_PACKAGE_ROOT="$GEODE_HOME/packages"
-G_CORE_PERSONA="$GEODE_HOME/core/CORE_PERSONA.md"
-G_SAVER_SCRIPT="$GEODE_HOME/tools/save_session.py"
+G_KNOWLEDGE_DIR="$GEMONADE_HOME/knowledge"
+G_PACKAGE_ROOT="$GEMONADE_HOME/packages"
+G_CORE_PERSONA="$GEMONADE_HOME/core/CORE_PERSONA.md"
+G_SAVER_SCRIPT="$GEMONADE_HOME/tools/save_session.py"
 
 # Load user config if it exists
 if [ -f "$CONFIG_FILE" ]; then
@@ -36,15 +36,15 @@ if [ -f "$LAST_CLEAN_FILE" ]; then
 fi
 
 if [ $((current_time - last_clean_time)) -gt 86400 ]; then
-    if [ -f "$GEODE_HOME/tools/cleanup_sessions.sh" ]; then
-        bash "$GEODE_HOME/tools/cleanup_sessions.sh" > /dev/null 2>&1 &
+    if [ -f "$GEMONADE_HOME/tools/cleanup_sessions.sh" ]; then
+        bash "$GEMONADE_HOME/tools/cleanup_sessions.sh" > /dev/null 2>&1 &
         echo $current_time > "$LAST_CLEAN_FILE"
     fi
 fi
 
 # 3. Helpers
 usage() {
-    echo "Usage: geode [command] [persona]"
+    echo "Usage: gemonade [command] [persona]"
     echo ""
     echo "Commands:"
     echo "  run <persona>   Start a session with a specific persona (default command)"
@@ -53,7 +53,7 @@ usage() {
     echo "  help            Show this help message"
     echo ""
     echo "💡 Pro Tip: To create new personas or understand how this framework works,"
-    echo "            run 'geode sys' to chat with the Geode Expert."
+    echo "            run 'gemonade sys' to chat with the Gemonade Expert."
     exit 1
 }
 
@@ -76,7 +76,7 @@ find_persona_file() {
 
 # 4. Command: List Personas
 list_personas() {
-    echo "Available Geode Personas:"
+    echo "Available Gemonade Personas:"
     
     # 1. Gather all potential names
     local names
@@ -152,7 +152,7 @@ run_persona() {
     # Determine Package Home
     local package_home=$(dirname "$persona_file")
     
-    echo "💎 Initializing Geode: [$persona]"
+    echo "💎 Initializing Gemonade: [$persona]"
     
     # Ensure session directory and state directory exist
     mkdir -p "$G_KNOWLEDGE_DIR/sessions/$persona"
@@ -183,8 +183,8 @@ case "$1" in
         list_personas
         ;;
     config)
-        echo "Geode Configuration:"
-        echo "  Home:          $GEODE_HOME"
+        echo "Gemonade Configuration:"
+        echo "  Home:          $GEMONADE_HOME"
         echo "  Packages:      $G_PACKAGE_ROOT"
         echo "  Knowledge:     $G_KNOWLEDGE_DIR"
         echo "  Core Logic:    $G_CORE_PERSONA"
