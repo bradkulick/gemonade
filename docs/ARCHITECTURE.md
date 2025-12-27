@@ -16,8 +16,8 @@ geode/
 │   └── CORE_PERSONA.md     # Universal standards (Inherited by all Personas)
 ├── packages/               # The Identity Packages
 │   ├── core/               # Immutable System Personas (sys, general)
-│   ├── installed/          # Community/3rd-Party Personas (Git Ignored)
-│   └── local/              # User-Created Private Personas (Git Ignored)
+│   ├── installed/          # Community/3rd-Party Personas
+│   └── local/              # User-Created Private Personas
 ├── knowledge/              # The "Active State"
 │   └── sessions/           # Session Logs
 ├── user_tools/             # Global User Scripts
@@ -46,7 +46,7 @@ The `geode` command is the single entry point. It orchestrates the session lifec
 
 2.  **Context Injection:** It dynamically concatenates `core/CORE_PERSONA.md` + `packages/.../persona.md`.
 
-3.  **Tool Discovery:** If the resolved package contains a `tools/` directory, that path is automatically prepended to the environment `$PATH`, granting the persona access to its specific capabilities.
+3.  **Tool Discovery:** If the resolved package contains a `tools/` directory, that path is automatically prepended to the session's `$PATH`. This ensures the persona (and the user) can call persona-specific tools directly during the interaction.
 
 4.  **Execution & Teardown:** Launches the native `gemini` CLI and triggers the Memory Saver upon exit.
 
