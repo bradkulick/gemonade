@@ -52,6 +52,8 @@ usage() {
     echo "  config          Show current configuration"
     echo "  help            Show this help message"
     echo ""
+    echo "💡 Pro Tip: To create new personas or understand how this framework works,"
+    echo "            run 'geode sys' to chat with the Geode Expert."
     exit 1
 }
 
@@ -75,23 +77,60 @@ find_persona_file() {
 # 4. Command: List Personas
 list_personas() {
     echo "Available Geode Personas:"
+    
+    # 1. Gather all potential names
     local names
     names=$(ls -d "$G_PACKAGE_ROOT/core/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
     names+=" "$(ls -d "$G_PACKAGE_ROOT/installed/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
     names+=" "$(ls -d "$G_PACKAGE_ROOT/local/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
-    
     unique_names=$(echo "$names" | tr ' ' '\n' | sort -u)
-    
+
+    # 2. Bucketize based on resolved path
+    local list_local=""
+    local list_installed=""
+    local list_core=""
+
     for name in $unique_names; do
         [ -z "$name" ] && continue
         persona_file=$(find_persona_file "$name")
+        
         if [ -f "$persona_file" ]; then
-            # Extract objective: handle both '**Objective:**' and 'Objective:'
+            # Extract objective
             desc=$(grep -m 1 "Objective:" "$persona_file" | sed -E 's/.*Objective:[ *]*//' | sed 's/[ *]*$//')
             [ -z "$desc" ] && desc="No objective defined."
-            printf "  - %-10s : %s\n" "$name" "$desc"
+            
+            # Format the line
+            line=$(printf "  - %-10s : %s" "$name" "$desc")
+            
+            # Determine source category and append with explicit newline
+            if [[ "$persona_file" == *"/packages/local/"* ]]; then
+                list_local="${list_local}${line}"$'\n'
+            elif [[ "$persona_file" == *"/packages/installed/"* ]]; then
+                list_installed="${list_installed}${line}"$'\n'
+            elif [[ "$persona_file" == *"/packages/core/"* ]]; then
+                list_core="${list_core}${line}"$'\n'
+            fi
         fi
     done
+
+    # 3. Print Groups
+    if [ -n "$list_local" ]; then
+        echo ""
+        echo "LOCAL (Private & Custom)"
+        echo -n "$list_local"
+    fi
+
+    if [ -n "$list_installed" ]; then
+        echo ""
+        echo "INSTALLED (Community Packages)"
+        echo -n "$list_installed"
+    fi
+
+    # Always show Core (even if theoretically empty, though sys/general exist)
+    echo ""
+    echo "CORE (Built-in Standards)"
+    echo -n "$list_core"
+    echo ""
 }
 
 # 5. Command: Run Persona

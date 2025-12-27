@@ -33,8 +33,23 @@ geode list
 *Output:*
 ```text
 Available Geode Personas:
+
+LOCAL (Private & Custom)
+  - thm        : Manage and optimize the Emerald Hills infrastructure...
+
+INSTALLED (Community Packages)
+  - (none)
+
+CORE (Built-in Standards)
   - general    : Provide high-quality thought partnership across any domain.
-  - sys        : Assist the user in managing personas, configuring the environment, and maintaining the Geode framework.
+  - sys        : Assist the user in managing personas and maintaining the framework.
+```
+
+**Getting Help:**
+```bash
+geode help
+# 💡 Pro Tip: To create new personas or understand how this framework works,
+#             run 'geode sys' to chat with the Geode Expert.
 ```
 
 **Examples:**
