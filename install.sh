@@ -22,10 +22,16 @@ if [ ! -f "$CONFIG_FILE" ]; then
     echo "📝 Creating default config at ~/.geode_config"
     cat <<EOF > "$CONFIG_FILE"
 # Geode User Configuration
-G_KNOWLEDGE_DIR="\$HOME/gemini_knowledge"
+# Defaulting to self-contained mode (knowledge inside geode folder)
+G_KNOWLEDGE_DIR="$GEODE_ROOT/knowledge"
 GEODE_RETENTION_DAYS="30"
 EOF
 fi
+
+# 4. Ensure directory structure exists
+mkdir -p "$GEODE_ROOT/knowledge/sessions"
+mkdir -p "$GEODE_ROOT/packages/installed"
+mkdir -p "$GEODE_ROOT/packages/local"
 
 # 4. Success Message
 echo ""
