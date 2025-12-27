@@ -1,14 +1,16 @@
-# Gemonade: The Stateful, Persona-Driven Gemini CLI Framework
+# Gemonade: The Refreshingly Stateful Gemini CLI Framework
+
+> **"When the world gives you Gemini, make Gemonade."** 🍋🥤
 
 Gemonade is an architectural wrapper that transforms the [Google Gemini CLI](https://www.npmjs.com/package/@google/gemini-cli) into a stateful, modular operating environment. It enables the creation of specialized AI "Personas" (Gems) that possess long-term memory, local system access, and the ability to self-evolve.
 
 ## 🚀 Why Gemonade?
-Standard AI interactions are stateless. Gemonade introduces a "Memory Bank" and a "Personality Engine" to the CLI, enabling:
 
-*   **Deep Context:** Every session is automatically recorded to a structured Knowledge Base.
-*   **Modular Identity:** Switch instantly between specialized personas (e.g., `sys`, `coding`, `network`) with a single command.
-*   **Unified Packages:** Community and local personas are treated as standardized packages that can bundle their own tools and knowledge.
-*   **Local Power:** Operates within your shell, allowing direct interaction with local files, tools, and private network devices.
+While generic AI wrappers exist, Gemonade is purpose-built for the Google Gemini ecosystem.
+
+1.  **Gemini-Native:** Unlike generic wrappers (like ShellGPT or Fabric) that default to OpenAI, Gemonade is optimized specifically for `@google/gemini-cli`, leveraging its deep integration with Google's models.
+2.  **Unified Package Architecture:** Personas aren't just text prompts. In Gemonade, a persona is a **Package**—a portable folder containing the prompt (`persona.md`), custom Python tools (`tools/`), and reference blueprints (`blueprints/`). You can install a community "AWS Expert" package and immediately gain its specific scripts and knowledge.
+3.  **Local-First State:** Your session history is yours. Gemonade automatically logs every interaction into clean, readable Markdown files in `knowledge/sessions/`. This "Active State" allows you to build a personal knowledge base that remains private and local.
 
 ## 🛠️ Quick Start
 
@@ -79,7 +81,7 @@ gemonade sys
 ## 🧠 Core Philosophy
 
 ### A. The "Gemonade" Metaphor
-A Gemonade is a protective shell containing distinct, valuable crystals. Similarly, this framework provides the "Shell" (launcher, logging, configuration) that protects and organizes your "Gems" (Personas).
+Just as lemonade transforms simple ingredients into something refreshing, this framework provides the "Mix" (launcher, logging, configuration) that turns the raw Gemini CLI into a complete, flavorful operating system for your AI interactions.
 
 ### B. Unified Package Architecture
 Gemonade treats every identity as a "Package"—a folder containing the persona's prompt, tools, and blueprints.
