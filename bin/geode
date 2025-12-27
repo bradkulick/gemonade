@@ -114,16 +114,20 @@ list_personas() {
     done
 
     # 3. Print Groups
+    echo ""
+    echo "LOCAL (Private & Custom)"
     if [ -n "$list_local" ]; then
-        echo ""
-        echo "LOCAL (Private & Custom)"
         echo -n "$list_local"
+    else
+        echo "  (none)"
     fi
 
+    echo ""
+    echo "INSTALLED (Community Packages)"
     if [ -n "$list_installed" ]; then
-        echo ""
-        echo "INSTALLED (Community Packages)"
         echo -n "$list_installed"
+    else
+        echo "  (none)"
     fi
 
     # Always show Core (even if theoretically empty, though sys/general exist)
