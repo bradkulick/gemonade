@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Gemonade: The Gemini CLI Persona Wrapper
-# Version: 0.2.0-pre (V1.5 Unified Packages)
+# Version: 1.1.0 (V1.5 Unified Packages + Venv Support)
 
 # 1. Configuration & Paths
 SOURCE="${BASH_SOURCE[0]}"
@@ -21,6 +21,7 @@ G_KNOWLEDGE_DIR="$GEMONADE_HOME/knowledge"
 G_PACKAGE_ROOT="$GEMONADE_HOME/packages"
 G_CORE_PERSONA="$GEMONADE_HOME/core/CORE_PERSONA.md"
 G_SAVER_SCRIPT="$GEMONADE_HOME/tools/save_session.py"
+G_INSTALLED_DIR="$G_PACKAGE_ROOT/installed"
 
 # Load user config if it exists
 if [ -f "$CONFIG_FILE" ]; then
@@ -47,97 +48,119 @@ usage() {
     echo "Usage: gemonade [command] [persona]"
     echo ""
     echo "Commands:"
-    echo "  run <persona>   Start a session with a specific persona (default command)"
-    echo "  list            List available personas"
-    echo "  config          Show current configuration"
-    echo "  help            Show this help message"
+    echo "  run <persona>           Start a session (default)"
+    echo "  list                    List available personas"
+    echo "  install <url|repo>      Install a Gem from Git"
+    echo "  uninstall <persona>     Remove an installed Gem"
+    echo "  update <persona>        Update an installed Gem"
+    echo "  config                  Show current configuration"
+    echo "  help                    Show this help message"
     echo ""
-    echo "💡 Pro Tip: To create new personas or understand how this framework works,"
-    echo "            run 'gemonade sys' to chat with the Gemonade Expert."
     exit 1
 }
 
 find_persona_file() {
     local name=$1
-    # Core Protection: sys and general always come from core
     if [[ "$name" == "sys" || "$name" == "general" ]]; then
         echo "$G_PACKAGE_ROOT/core/$name/persona.md"
         return
     fi
-    # Priority: Local > Installed > Core
     if [ -f "$G_PACKAGE_ROOT/local/$name/persona.md" ]; then
         echo "$G_PACKAGE_ROOT/local/$name/persona.md"
-    elif [ -f "$G_PACKAGE_ROOT/installed/$name/persona.md" ]; then
-        echo "$G_PACKAGE_ROOT/installed/$name/persona.md"
+    elif [ -f "$G_INSTALLED_DIR/$name/persona.md" ]; then
+        echo "$G_INSTALLED_DIR/$name/persona.md"
     elif [ -f "$G_PACKAGE_ROOT/core/$name/persona.md" ]; then
         echo "$G_PACKAGE_ROOT/core/$name/persona.md"
     fi
 }
 
-# 4. Command: List Personas
-list_personas() {
-    echo "Available Gemonade Personas:"
-    
-    # 1. Gather all potential names
-    local names
-    names=$(ls -d "$G_PACKAGE_ROOT/core/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
-    names+=" "$(ls -d "$G_PACKAGE_ROOT/installed/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
-    names+=" "$(ls -d "$G_PACKAGE_ROOT/local/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
-    unique_names=$(echo "$names" | tr ' ' '\n' | sort -u)
-
-    # 2. Bucketize based on resolved path
-    local list_local=""
-    local list_installed=""
-    local list_core=""
-
-    for name in $unique_names; do
-        [ -z "$name" ] && continue
-        persona_file=$(find_persona_file "$name")
-        
-        if [ -f "$persona_file" ]; then
-            # Extract objective
-            desc=$(grep -m 1 "Objective:" "$persona_file" | sed -E 's/.*Objective:[ *]*//' | sed 's/[ *]*$//')
-            [ -z "$desc" ] && desc="No objective defined."
-            
-            # Format the line
-            line=$(printf "  - %-10s : %s" "$name" "$desc")
-            
-            # Determine source category and append with explicit newline
-            if [[ "$persona_file" == *"/packages/local/"* ]]; then
-                list_local="${list_local}${line}"$'\n'
-            elif [[ "$persona_file" == *"/packages/installed/"* ]]; then
-                list_installed="${list_installed}${line}"$'\n'
-            elif [[ "$persona_file" == *"/packages/core/"* ]]; then
-                list_core="${list_core}${line}"$'\n'
-            fi
-        fi
-    done
-
-    # 3. Print Groups
-    echo ""
-    echo "LOCAL (Private & Custom)"
-    if [ -n "$list_local" ]; then
-        echo -n "$list_local"
-    else
-        echo "  (none)"
+get_json_value() {
+    local file=$1
+    local key=$2
+    if [ -f "$file" ]; then
+        # Simple grep hack for JSON (assumes strict formatting by sys persona) 
+        # Ideally use jq if available, but fall back to grep/sed for zero-dep
+        grep "\"$key\"" "$file" | sed -E 's/.*: \"(.*)\".*/\1/' | sed -E 's/.*: (.*),?/
+1/'
     fi
-
-    echo ""
-    echo "INSTALLED (Community Packages)"
-    if [ -n "$list_installed" ]; then
-        echo -n "$list_installed"
-    else
-        echo "  (none)"
-    fi
-
-    # Always show Core (even if theoretically empty, though sys/general exist)
-    echo ""
-    echo "CORE (Built-in Standards)"
-    echo -n "$list_core"
-    echo ""
 }
 
-# 5. Command: Run Persona
+# 4. Command: Install
+install_gem() {
+    local repo_url=$1
+    if [ -z "$repo_url" ]; then
+        echo "❌ Usage: gemonade install <git-url> or <user/repo>"
+        exit 1
+    fi
+
+    # Handle "user/repo" shorthand
+    if [[ "$repo_url" != http* && "$repo_url" != git@* ]]; then
+        repo_url="https://github.com/$repo_url.git"
+    fi
+
+    # Extract name from URL
+    local gem_name=$(basename "$repo_url" .git)
+    local install_path="$G_INSTALLED_DIR/$gem_name"
+
+    if [ -d "$install_path" ]; then
+        echo "⚠️  Gem '$gem_name' is already installed."
+        read -p "Reinstall? [y/N] " -n 1 -r
+        echo ""
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then exit 1; fi
+        rm -rf "$install_path"
+    fi
+
+    echo "📦 Cloning $repo_url..."
+    mkdir -p "$G_INSTALLED_DIR"
+    git clone "$repo_url" "$install_path" || { echo "❌ Clone failed"; exit 1; }
+
+    echo "⚙️  Configuring '$gem_name'..."
+    hydrate_gem "$install_path"
+
+    echo "✅ Successfully installed '$gem_name'."
+}
+
+# 5. Command: Uninstall
+uninstall_gem() {
+    local name=$1
+    local path="$G_INSTALLED_DIR/$name"
+
+    if [ -z "$name" ]; then echo "❌ Usage: gemonade uninstall <name>"; exit 1; fi
+    if [[ "$name" == "sys" || "$name" == "general" ]]; then echo "❌ Cannot uninstall Core gems."; exit 1; fi
+    if [ ! -d "$path" ]; then echo "❌ Gem '$name' not found in Installed packages."; exit 1; fi
+
+    echo "🗑️  Uninstalling '$name'..."
+    rm -rf "$path"
+    echo "✅ Removed package files. (Session logs preserved)."
+}
+
+# 6. Command: Hydrate (Setup Venv)
+hydrate_gem() {
+    local path=$1
+    local gem_json="$path/gem.json"
+    
+    # Check for requirements in JSON or file presence
+    local req_file=""
+    if [ -f "$gem_json" ]; then
+        # Extract from JSON if present
+        local json_req=$(get_json_value "$gem_json" "python_dependencies")
+        if [ -n "$json_req" ]; then req_file="$path/$json_req"; fi
+    fi
+    
+    # Fallback/Convention
+    if [ -z "$req_file" ] && [ -f "$path/requirements.txt" ]; then
+        req_file="$path/requirements.txt"
+    fi
+
+    if [ -n "$req_file" ] && [ -f "$req_file" ]; then
+        echo "🐍 Python dependencies detected. Creating isolated environment..."
+        python3 -m venv "$path/.venv"
+        "$path/.venv/bin/pip" install -r "$req_file"
+        echo "✅ Virtual environment created."
+    fi
+}
+
+# 7. Command: Run Persona
 run_persona() {
     local persona=$1
     [ -z "$persona" ] && persona="general"
@@ -149,57 +172,74 @@ run_persona() {
         exit 1
     fi
 
-    # Determine Package Home
     local package_home=$(dirname "$persona_file")
     
     echo "💎 Initializing Gemonade: [$persona]"
     
-    # Ensure session directory and state directory exist
     mkdir -p "$G_KNOWLEDGE_DIR/sessions/$persona"
     mkdir -p "$STATE_DIR"
 
-    # Combine Core + Persona for the system prompt
+    # Hydration Check (Just in case user manually created folder)
+    if [ ! -d "$package_home/.venv" ] && [ -f "$package_home/requirements.txt" ]; then
+        echo "⚠️  Missing environment. Hydrating..."
+        hydrate_gem "$package_home"
+    fi
+
+    # Combine Core + Persona
     local active_system_md="$STATE_DIR/system_${persona}_$$.md"
     cat "$G_CORE_PERSONA" "$persona_file" > "$active_system_md"
     trap "rm -f '$active_system_md'" EXIT
 
-    # Tool Discovery: If package has a tools/ dir, add it to PATH
+    # --- Runtime Environment Setup ---
+    
+    # 1. Tools Path
     if [ -d "$package_home/tools" ]; then
         export PATH="$package_home/tools:$PATH"
+    fi
+    
+    # 2. Python Venv (The Critical Bit)
+    if [ -d "$package_home/.venv" ]; then
+        # We prepend the venv bin to PATH so 'python3' calls use the venv
+        export PATH="$package_home/.venv/bin:$PATH"
+        # We also set VIRTUAL_ENV variable for politeness
+        export VIRTUAL_ENV="$package_home/.venv"
     fi
 
     # Launch Gemini CLI
     GEMINI_SYSTEM_MD="$active_system_md" gemini
 
-    # Post-session: Run the Saver
+    # Post-session Saver
     if [ -f "$G_SAVER_SCRIPT" ]; then
-        python3 "$G_SAVER_SCRIPT" "$G_KNOWLEDGE_DIR/sessions/$persona"
+        # Note: We use the SYSTEM python for the saver, not the Gem's python
+        /usr/bin/env python3 "$G_SAVER_SCRIPT" "$G_KNOWLEDGE_DIR/sessions/$persona"
     fi
 }
 
-# 6. Argument Parsing
+# 8. Command Dispatch
 case "$1" in
-    list)
-        list_personas
-        ;;
+    list) list_personas ;; 
+    install) shift; install_gem "$@" ;; 
+    uninstall) shift; uninstall_gem "$@" ;; 
+    update) 
+        shift
+        name=$1
+        path="$G_INSTALLED_DIR/$name"
+        if [ -d "$path" ]; then
+            echo "⬇️  Updating $name..."
+            (cd "$path" && git pull)
+            hydrate_gem "$path"
+        else
+            echo "❌ Gem not found."
+        fi
+        ;; 
     config)
         echo "Gemonade Configuration:"
         echo "  Home:          $GEMONADE_HOME"
         echo "  Packages:      $G_PACKAGE_ROOT"
         echo "  Knowledge:     $G_KNOWLEDGE_DIR"
-        echo "  Core Logic:    $G_CORE_PERSONA"
         ;; 
-    help|--help|-h)
-        usage
-        ;; 
-    run)
-        shift
-        run_persona "$1"
-        ;; 
-    "")
-        run_persona "general"
-        ;; 
-    *)
-        run_persona "$1"
-        ;; 
+    help|--help|-h) usage ;; 
+    run) shift; run_persona "$1" ;; 
+    "") run_persona "general" ;; 
+    *) run_persona "$1" ;; 
 esac
