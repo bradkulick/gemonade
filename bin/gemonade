@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Gemonade: The Gemini CLI Persona Wrapper
-# Version: 1.1.0 (V1.5 Unified Packages + Venv Support)
+# Version: 2.0.0 (The Gem Ecosystem)
 
 # 1. Configuration & Paths
 SOURCE="${BASH_SOURCE[0]}"
