@@ -1,0 +1,7 @@
+{
+  "name": "stack-scaffolder",
+  "version": "0.1.0",
+  "description": "Dynamic project generator for rapid tech stack prototyping.",
+  "author": "Bradford Kulick",
+  "dependencies": []
+}

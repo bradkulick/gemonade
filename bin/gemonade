@@ -277,7 +277,7 @@ run_persona() {
     fi
 
     # Launch Gemini CLI
-    GEMINI_SYSTEM_MD="$active_system_md" gemini
+    GEMINI_SYSTEM_MD="$active_system_md" gemini --include-directories "$G_KNOWLEDGE_DIR"
 
     # Post-session: Run the Saver
     if [ -f "$G_SAVER_SCRIPT" ]; then
