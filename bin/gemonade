@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Gemonade: The Gemini CLI Persona Wrapper
-# Version: 2.0.2 (Smart Manifest Renaming)
+# Version: 2.0.3 (Hotfix: Robust JSON Parsing & Char Scrub)
 
 # 1. Configuration & Paths
 SOURCE="${BASH_SOURCE[0]}"
@@ -82,9 +82,8 @@ get_json_value() {
     local file=$1
     local key=$2
     if [ -f "$file" ]; then
-        # Simple grep hack for JSON (assumes strict formatting by sys persona)
-        grep "\"$key\"" "$file" | sed -E 's/.*: \"(.*)\".*/\1/' | sed -E 's/.*: (.*),?/
-1/'
+        # Robust Python parsing instead of fragile sed/grep
+        python3 -c "import json, sys; data=json.load(open('$file')); print(data.get('$key', ''))" 2>/dev/null
     fi
 }
 
@@ -117,7 +116,7 @@ install_gem() {
     mkdir -p "$G_INSTALLED_DIR"
     git clone "$repo_url" "$install_path" || { echo "❌ Clone failed"; exit 1; }
 
-    # --- NEW: Smart Manifest Renaming ---
+    # --- Smart Manifest Renaming ---
     local manifest_name=$(get_json_value "$install_path/gem.json" "name")
     if [ -n "$manifest_name" ] && [ "$manifest_name" != "$repo_name" ]; then
         if [ -d "$G_INSTALLED_DIR/$manifest_name" ]; then
@@ -145,7 +144,7 @@ uninstall_gem() {
     if [[ "$name" == "sys" || "$name" == "general" ]]; then echo "❌ Cannot uninstall Core gems."; exit 1; fi
     if [ ! -d "$path" ]; then echo "❌ Gem '$name' not found in Installed packages."; exit 1; fi
 
-    echo "🗑️  Uninstalling '$name' நான"
+    echo "🗑️  Uninstalling '$name'..."
     rm -rf "$path"
     echo "✅ Removed package files. (Session logs preserved)."
 }
