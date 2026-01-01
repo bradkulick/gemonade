@@ -48,9 +48,10 @@ gemonade sys                   # Chat with the System Architect
 
 **Examples:**
 ```bash
-gemonade sys      # Launch the framework administrator
-gemonade general  # Launch the general knowledge partner
-gemonade innspect # Launch a local private persona (if created)
+gemonade sys      # Launch the framework architect (Core)
+gemonade general  # Launch the general thought partner (Core)
+gemonade innspect # Launch an installed community Gem (Installed)
+gemonade thm      # Launch a local private Gem (Local)
 ```
 
 ### 3. Creating New Gems (The "Gem Factory")
