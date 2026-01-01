@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Gemonade: The Gemini CLI Persona Wrapper
-# Version: 2.0.1 (Hotfix: Restore list command)
+# Version: 2.0.2 (Smart Manifest Renaming)
 
 # 1. Configuration & Paths
 SOURCE="${BASH_SOURCE[0]}"
@@ -83,7 +83,8 @@ get_json_value() {
     local key=$2
     if [ -f "$file" ]; then
         # Simple grep hack for JSON (assumes strict formatting by sys persona)
-        grep "\"$key\"" "$file" | sed -E 's/.*: \"(.*)\".*/\1/' | sed -E 's/.*: (.*),?/\1/'
+        grep "\"$key\"" "$file" | sed -E 's/.*: \"(.*)\".*/\1/' | sed -E 's/.*: (.*),?/
+1/'
     fi
 }
 
@@ -101,11 +102,11 @@ install_gem() {
     fi
 
     # Extract name from URL
-    local gem_name=$(basename "$repo_url" .git)
-    local install_path="$G_INSTALLED_DIR/$gem_name"
+    local repo_name=$(basename "$repo_url" .git)
+    local install_path="$G_INSTALLED_DIR/$repo_name"
 
     if [ -d "$install_path" ]; then
-        echo "⚠️  Gem '$gem_name' is already installed."
+        echo "⚠️  Gem directory '$repo_name' already exists."
         read -p "Reinstall? [y/N] " -n 1 -r
         echo ""
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then exit 1; fi
@@ -116,10 +117,23 @@ install_gem() {
     mkdir -p "$G_INSTALLED_DIR"
     git clone "$repo_url" "$install_path" || { echo "❌ Clone failed"; exit 1; }
 
-    echo "⚙️  Configuring '$gem_name'..."
+    # --- NEW: Smart Manifest Renaming ---
+    local manifest_name=$(get_json_value "$install_path/gem.json" "name")
+    if [ -n "$manifest_name" ] && [ "$manifest_name" != "$repo_name" ]; then
+        if [ -d "$G_INSTALLED_DIR/$manifest_name" ]; then
+            echo "⚠️  A Gem named '$manifest_name' is already installed. Keeping original folder name '$repo_name'."
+        else
+            echo "🏷️  Renaming '$repo_name' to '$manifest_name' (per gem.json)..."
+            mv "$install_path" "$G_INSTALLED_DIR/$manifest_name"
+            install_path="$G_INSTALLED_DIR/$manifest_name"
+            repo_name=$manifest_name
+        fi
+    fi
+
+    echo "⚙️  Configuring '$repo_name'..."
     hydrate_gem "$install_path"
 
-    echo "✅ Successfully installed '$gem_name'."
+    echo "✅ Successfully installed '$repo_name'."
 }
 
 # 5. Command: Uninstall
@@ -131,7 +145,7 @@ uninstall_gem() {
     if [[ "$name" == "sys" || "$name" == "general" ]]; then echo "❌ Cannot uninstall Core gems."; exit 1; fi
     if [ ! -d "$path" ]; then echo "❌ Gem '$name' not found in Installed packages."; exit 1; fi
 
-    echo "🗑️  Uninstalling '$name'..."
+    echo "🗑️  Uninstalling '$name' நான"
     rm -rf "$path"
     echo "✅ Removed package files. (Session logs preserved)."
 }
