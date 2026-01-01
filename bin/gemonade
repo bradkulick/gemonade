@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Gemonade: The Gemini CLI Persona Wrapper
-# Version: 2.0.3 (Hotfix: Robust JSON Parsing & Char Scrub)
+# Version: 2.0.4 (Reference Gem Knowledge)
 
 # 1. Configuration & Paths
 SOURCE="${BASH_SOURCE[0]}"
