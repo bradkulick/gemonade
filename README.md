@@ -40,7 +40,8 @@ gemonade [gem_name]
 **Common Commands:**
 ```bash
 gemonade list                  # List available Gems (Core, Installed, Local)
-gemonade install <url>         # Install a Gem from a Git repository
+gemonade search <term>         # Search GitHub for community Gems
+gemonade install <url|path>    # Install a Gem from a Git URL or local folder
 gemonade uninstall <gem>       # Remove an installed Gem
 gemonade update <gem>          # Update a Gem and re-hydrate its dependencies
 gemonade sys                   # Chat with the System Architect
@@ -48,24 +49,43 @@ gemonade sys                   # Chat with the System Architect
 
 **Examples:**
 ```bash
-gemonade sys      # Launch the framework architect (Core)
-gemonade general  # Launch the general thought partner (Core)
-gemonade innspect # Launch an installed community Gem (Installed)
-gemonade thm      # Launch a local private Gem (Local)
+gemonade search innspect       # Find the 'innspect' gem
+gemonade install bradkulick/gem-innspect
+gemonade innspect              # Launch it
 ```
 
-### 3. Creating New Gems (The "Gem Factory")
-You don't need to write code to create a Gem. Just ask the System Administrator.
+### 3. The Gemonade Stand (Squeezing New Gems)
+You don't need to write code to create or manage a Gem. Just ask the System Administrator to handle the "squeezing" for you.
 
 ```bash
 gemonade sys
 > "Make me a stock ticker gem."
+> "I want to publish my 'thm' gem to GitHub."
+> "Graduate my 'scaffolder' gem into a native extension."
 ```
 
 **The Architect Workflow:**
-1.  **Consultation:** `sys` will ask clarifying questions about your goal (e.g., "Do you have an API key?").
-2.  **Architecture:** It will propose a stack and ensure the tool fits the CLI environment (e.g., warning against Video/GUI requests).
-3.  **Fabrication:** Once approved, it scaffolds the `gem.json`, `persona.md`, and `requirements.txt` for you.
+1.  **Consultation:** `sys` will ask clarifying questions about your goal.
+2.  **Architecture:** It proposes a stack and ensures the tool fits the CLI environment.
+3.  **Fabrication:** It scaffolds the `gem.json`, `persona.md`, and `requirements.txt` for you.
+4.  **Lifecycle Management:** Once your Gem is mature, `sys` can **Publish** your Gem to the world or **Graduate** it into a native Gemini CLI Extension.
+
+### 4. Bottling & Distribution (Publishing & Graduation)
+For those who prefer direct CLI control over the "bottling" process, Gemonade includes a full release engineering suite.
+
+**A. Publishing to the World**
+Publish your Local Gem to GitHub so others can find it via `gemonade search`.
+1.  Navigate to your gem folder: `cd packages/local/my-gem`
+2.  Run the publisher: `python3 ../../../tools/publish.py`
+    *   Handles semantic versioning (bumps `gem.json`).
+    *   Creates Git tags and release commits.
+    *   Tags the repo with `gemonade-gem` for discovery.
+
+**B. Graduation (The Incubator)**
+Turn your Gem into a native, permanent Gemini CLI Extension.
+1.  Run the incubator: `python3 tools/gem_2_extension.py packages/local/my-gem`
+2.  Your gem is compiled into a native extension format in the `graduates/` folder.
+3.  Install it permanently: `gemini install extension graduates/my-gem`
 
 ## 🧠 Core Philosophy
 

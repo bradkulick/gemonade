@@ -100,3 +100,17 @@ Gemonade supports two methods for modifying behavior:
         - **Extra Rule:** Always speak in Haiku.
         ```
     *   *Note:* While Gemonade doesn't have a native macro language yet, users can manually inherit logic by referencing files or copying base instructions.
+
+## 5. Lifecycle & Release Engineering
+
+V3 introduced a formal pipeline for moving Gems from local prototypes to production-ready extensions.
+
+### A. The Incubator (Gem-to-Extension)
+The `tools/gem_2_extension.py` utility allows Gems to "graduate" into native Gemini CLI Extensions. 
+*   **Transformation:** It refactors the Gemonade-specific `persona.md` and `gem.json` into the extension-native `GEMINI.md` and `gemini-extension.json`.
+*   **Isolation:** It bundles dependencies and scripts while excluding framework-specific metadata.
+
+### B. Discovery & Publishing
+Gemonade treats GitHub as its decentralized package registry.
+*   **Search:** `gemonade search` uses the GitHub CLI (`gh`) to query repositories tagged with the `gemonade-gem` topic.
+*   **Publishing:** `tools/publish.py` automates the "bottling" process by handling SemVer version bumps, Git tagging, and applying the `gemonade-gem` topic to the repository for discovery.
