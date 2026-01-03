@@ -4,6 +4,7 @@ import json
 import subprocess
 import argparse
 import sys
+import shutil
 from pathlib import Path
 
 def run_command(command, cwd=None, check=True):
@@ -55,31 +56,36 @@ def bump_version(current_version, bump_type):
         patch += 1
     return f"{major}.{minor}.{patch}"
 
-def enforce_findability(gem_path):
-    """Adds the 'gemonade-gem' topic using gh CLI."""
-    print("🔍 Ensuring findability (adding 'gemonade-gem' topic)...")
+def sync_github_metadata(gem_path, data):
+    """Syncs gem.json description and topics to GitHub."""
+    print("🔄 Syncing metadata to GitHub...")
     # Check if gh is installed
     if shutil.which("gh") is None:
-        print("⚠️  Warning: GitHub CLI ('gh') not found. Skipping topic tagging.")
+        print("⚠️  Warning: GitHub CLI ('gh') not found. Skipping metadata sync.")
         return
 
     # Check if repo has a remote
     remotes = run_command("git remote", cwd=gem_path, check=False)
     if not remotes:
-        print("⚠️  Warning: No git remote configured. Skipping GitHub topic tagging.")
+        print("⚠️  Warning: No git remote configured. Skipping GitHub sync.")
         return
 
     try:
-        # We assume the current directory is the repo root for the gh command context
-        # or we pass the repo argument if we could derive it, but running inside the dir is safer.
-        # However, gh repo edit works on the repository context.
-        cmd = "gh repo edit --add-topic gemonade-gem"
-        run_command(cmd, cwd=gem_path, check=False)
-        print("   ✅ Added 'gemonade-gem' topic to GitHub repository.")
-    except Exception as e:
-        print(f"   ⚠️  Failed to add topic: {e}")
+        # 1. Ensure Topic
+        cmd_topic = "gh repo edit --add-topic gemonade-gem"
+        run_command(cmd_topic, cwd=gem_path, check=False)
 
-import shutil
+        # 2. Sync Description
+        description = data.get("description", "")
+        if description:
+            # Escape double quotes for shell safety
+            safe_desc = description.replace('"', '\\"')
+            cmd_desc = f'gh repo edit --description "{safe_desc}"'
+            run_command(cmd_desc, cwd=gem_path, check=False)
+            
+        print("   ✅ Synced gem.json metadata (description & topics) to GitHub.")
+    except Exception as e:
+        print(f"   ⚠️  Failed to sync metadata: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Publish a Gemonade Gem (Version Bump + Git Release).")
@@ -141,8 +147,8 @@ def main():
     run_command("git push", cwd=gem_path)
     run_command("git push --tags", cwd=gem_path)
 
-    # 5. Enforce Findability
-    enforce_findability(gem_path)
+    # 5. Enforce Findability & Metadata Sync
+    sync_github_metadata(gem_path, data)
 
     print(f"\n✅ Published {name} {tag_name} successfully!")
 
