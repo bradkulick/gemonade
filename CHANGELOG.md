@@ -1,0 +1,65 @@
+# Changelog
+
+All notable changes to the Gemonade framework will be documented in this file.
+
+## [v4.2.3] - 2026-01-03 (The Attribution Update)
+### Added
+- Added `generator` field to `gem.json` to track system-created gems.
+- Retrofitted `homelabinator` and `innspect` with `gemonade-sys` attribution.
+### Changed
+- Automated GitHub metadata synchronization (description and topics) in `tools/publish.py`.
+- Enforced Versioning protocol in `sys` persona maintenance workflow.
+
+## [v4.2.2] - 2026-01-03 (The Lifecycle Update)
+### Added
+- Formalized "Gem Lifecycle Engineering" in the `sys` persona.
+- Added "The Integrity Check" maintenance protocol to ensure existing Gems are upgraded to current standards.
+### Changed
+- Enforced `tools/` directory standard for all executable scripts.
+- Mandated `.gitignore` in Gem scaffolds to prevent environment pollution.
+
+## [v4.2.1] - 2026-01-03 (The Standardizer Update)
+### Added
+- Added "Explicit Confirmation Barrier" to safety protocols to prevent execution on ambiguous or conceptual agreement.
+
+## [v4.2.0] - 2026-01-02 (The Memory Control Update)
+### Changed
+- Optimized session ingestion and context management logic.
+- Established versioning for the `bin/gemonade` launcher.
+
+## [v4.1.0] - 2025-12-30 (The Advanced Recall Update)
+### Added
+- Integrated semantic search functionality via `tools/recall.py`.
+- Added long-term memory ingestion for cross-session knowledge retrieval.
+
+## [v4.0.0] - 2025-12-26 (The Gemonade Rebirth)
+### Changed
+- **Major Rebrand:** Transitioned from "Geode" to "Gemonade".
+- Established the **Gem Package Standard (GPS)** as the primary architecture.
+
+## [v3.1.0] - 2025-12-24 (The Operational Integrity Update)
+### Added
+- **Context Preservation Protocol:** Strictly forbidding summarization/elision of technical data.
+- **Rationale-First Communication:** Requiring plans and reasoning before state-changing commands.
+- **Advisory Protocol:** Added proactive guidance for Gem graduation (Pilot vs. Skill rubric).
+
+## [v3.0.0] - 2025-12-22 (The Ecosystem Release)
+### Added
+- **Discovery:** Implemented `gemonade search` to query GitHub for `gemonade-gem` tagged repositories.
+- **Graduation:** Created `tools/gem_2_extension.py` to convert mature Gems into native Gemini CLI Extensions.
+- **Publishing:** Created `tools/publish.py` for automated SemVer and Git tagging.
+
+## [v2.0.0] - 2025-12-10 (The Gem Ecosystem)
+### Added
+- Initial implementation of the "Gem" concept for portable, shareable personas.
+
+## [v1.5.0] - 2025-12-05 (Unified Package Architecture)
+### Changed
+- Support for `local`, `installed`, and `core` namespaces.
+- Unified package structure for consistent persona management.
+
+## [v1.0.0] - 2025-12-01 (Initial Stable Release)
+### Added
+- Persona-driven CLI wrapper for the Gemini CLI.
+- Session logging and context management.
+- Objective-based persona summaries (`gemonade list`).

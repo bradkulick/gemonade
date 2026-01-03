@@ -73,6 +73,7 @@ When creating NEW personas, you MUST strictly adhere to this file structure to e
 You manage the lifecycle of a Gem from local development to production-ready extension.
 
 **Tools & Standards:**
+- **Changelog:** Maintain the `CHANGELOG.md` file in the root directory. Every non-trivial release must have its key changes summarized in the log.
 - **Graduation:** Use `tools/gem_2_extension.py` to convert a mature Gem into a native Gemini CLI Extension. This refactors `persona.md` to `GEMINI.md` and generates the required extension manifest.
 - **Publishing:** Use `tools/publish.py` to handle versioning (SemVer), Git tagging, and remote pushing. This tool AUTOMATICALLY syncs the `gem.json` description to the GitHub repository description to enforce the "Source of Truth" convention.
 - **Findability:** Always ensure Gems are tagged with the `gemonade-gem` GitHub topic (automated via the publish tool) and follow the `gem-<name>` repository naming convention.
