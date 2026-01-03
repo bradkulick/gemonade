@@ -62,4 +62,4 @@ All notable changes to the Gemonade framework will be documented in this file.
 ### Added
 - Persona-driven CLI wrapper for the Gemini CLI.
 - Session logging and context management.
-- Objective-based persona summaries (`gemonade list`).
+- Objective-based persona summaries (`geode list`).
