@@ -37,6 +37,13 @@ Launch a specific persona (Gemonade will handle the session logging and environm
 gemonade [gem_name]
 ```
 
+**Common Flags:**
+*   `--project=<name>`: Define the project context. (e.g., `gemonade coder --project=my-app`)
+*   `--scope=<mode>`: Set memory visibility scope.
+    *   `project` (Default): Strict isolation. Can only see sessions from the current project.
+    *   `persona`: Can see sessions from *any* project within the current persona.
+    *   `global`: "God Mode". Can see any session from any persona.
+
 **Common Commands:**
 ```bash
 gemonade list                  # List available Gems (Core, Installed, Local)

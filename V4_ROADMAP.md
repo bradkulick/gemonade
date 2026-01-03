@@ -2,10 +2,11 @@
 
 Following the successful implementation of the Gem Ecosystem and Lifecycle tools in V3, V4 focuses on deepening the intelligence, connectivity, and automation of the framework.
 
-## 1. Advanced Memory & Context (The "Brain" Upgrade)
-Currently, Gemonade reads the "last session" file to maintain context. In V4, we aim to implement **Semantic Memory**.
-*   **Local RAG (Retrieval-Augmented Generation):** Implement a lightweight vector store (e.g., `chromadb` or simple cosine similarity) over the `knowledge/sessions/` directory. This would allow Gems to answer: *"What did we discuss about AWS three weeks ago?"*
-*   **Cross-Session Context:** Allowing a Gem to pull context from *other* Gems' sessions if authorized (e.g., `sys` diagnosing a crash in `innspect`).
+## ✅ Completed: Advanced Memory & Isolation (V4.1)
+*   **Semantic Memory (RAG):** Implemented local vector store (`chromadb`) over `knowledge/sessions/`.
+*   **Strict Isolation:** Migrated session storage to `sessions/{persona}/{project}/` to prevent bleed.
+*   **Access Scopes:** Introduced `--scope` flags (`project`, `persona`, `global`) to control visibility boundaries.
+*   **Cross-Session Context:** Enabled via Global Scope or Persona Scope for broad queries.
 
 ## 2. Gem Interoperability
 *   **Shared Blueprints:** Formalize a mechanism for Gems to reference `blueprints/` from other Installed Gems (e.g., a "Network Map" blueprint shared by `innspect` and `sys`).

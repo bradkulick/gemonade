@@ -76,12 +76,14 @@ def format_message(msg):
     return text
 
 def main():
-    # Allow user to specify the full destination directory
-    if len(sys.argv) > 1:
-        dest_dir = os.path.expanduser(sys.argv[1])
-    else:
-        # Default to current directory if not specified
-        dest_dir = os.getcwd()
+    import argparse
+    parser = argparse.ArgumentParser(description="Save Gemini session logs as Markdown.")
+    parser.add_argument("dest_dir", help="Directory where the Markdown file will be saved.")
+    parser.add_argument("--project", help="The project context for this session.", default="global")
+    
+    args = parser.parse_args()
+    dest_dir = os.path.expanduser(args.dest_dir)
+    project_ctx = args.project
     
     # Ensure destination exists
     if not os.path.exists(dest_dir):
@@ -119,6 +121,7 @@ def main():
 
         markdown_content = f"# Gemini Session Log\n"
         markdown_content += f"- **Date:** {display_date}\n"
+        markdown_content += f"- **Project:** {project_ctx}\n"
         markdown_content += f"- **ID:** {session_id}\n"
         markdown_content += f"- **Source Log:** `{log_file}`\n"
         markdown_content += f"---\n"

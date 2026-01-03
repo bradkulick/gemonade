@@ -54,7 +54,18 @@ Standard terminal recording (`script`) captures "noise". Gemonade uses a custom 
 1.  Parses the internal JSON logs from the Gemini CLI.
 2.  Extracts the clean conversation (User Prompt + AI Response).
 3.  Formats "Thought Processes" into collapsible HTML/Markdown details.
-4.  Saves the clean file to `knowledge/sessions/[persona]/`.
+4.  Saves the clean file to `knowledge/sessions/[persona]/[project_context]/`.
+
+### C. Memory Access Scopes (V4.1)
+Gemonade implements "Contextual Boundaries" to prevent session bleed and ensure data integrity. These boundaries are controlled via the `--scope` flag.
+
+| Mode | Scope | Visibility Boundary | Default Use Case |
+| :--- | :--- | :--- | :--- |
+| **Project** | `project` | Restricted to `sessions/{persona}/{project_context}/` | Daily development, isolated tasks (Default). |
+| **Persona** | `persona` | Access to all projects within the current Persona. | Cross-project reference, library knowledge. |
+| **Global** | `global` | Unrestricted access to all sessions across all personas. | System administration, meta-analysis. |
+
+The launcher dynamically injects a "Scope Directive" into the system prompt based on the active mode, guiding the agent's file browsing and retrieval behavior.
 
 ## 3. The Gemonade Package Standard (GPS)
 

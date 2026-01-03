@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Gemonade: The Gemini CLI Persona Wrapper
-# Version: 3.1.0 (The Integrity Update)
+# Version: 4.2.0 (The Memory Control Update)
 
 # 1. Configuration & Paths
 SOURCE="${BASH_SOURCE[0]}"
@@ -15,6 +15,7 @@ GEMONADE_HOME="$( cd -P "$( dirname "$SOURCE" )/.." >/dev/null 2>&1 && pwd )"
 CONFIG_FILE="$HOME/.gemonade_config"
 STATE_DIR="$HOME/.gemonade"
 LAST_CLEAN_FILE="$STATE_DIR/last_clean"
+G_CORE_VENV="$STATE_DIR/.venv"
 
 # Default Paths (Can be overridden in CONFIG_FILE)
 G_KNOWLEDGE_DIR="$GEMONADE_HOME/knowledge"
@@ -28,7 +29,77 @@ if [ -f "$CONFIG_FILE" ]; then
     source "$CONFIG_FILE"
 fi
 
-# 2. Lazy Background Cleanup
+# 2. Project Context Detection (V4)
+detect_project_context() {
+    # Hierarchy: Flag (passed as arg) > Env Var > Git Root > Config File > Default
+    local explicit_flag=$1
+    
+    if [ -n "$explicit_flag" ]; then
+        echo "$explicit_flag"
+        return
+    fi
+
+    if [ -n "$GEMONADE_PROJECT" ]; then
+        echo "$GEMONADE_PROJECT"
+        return
+    fi
+
+    # Try Git Root Name
+    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        local git_root=$(git rev-parse --show-toplevel)
+        basename "$git_root"
+        return
+    fi
+    
+    # Try Local Config
+    if [ -f ".gemonade_project" ]; then
+        head -n 1 ".gemonade_project"
+        return
+    fi
+
+    echo "global"
+}
+
+# 3. JIT Hooks (V4)
+get_python_cmd() {
+    # Prefer Core Venv, fallback to system
+    if [ -f "$G_CORE_VENV/bin/python3" ]; then
+        echo "$G_CORE_VENV/bin/python3"
+    else
+        echo "python3"
+    fi
+}
+
+run_hook() {
+    local hook_name=$1
+    local context=$2
+    local persona=$3
+    local py_cmd=$(get_python_cmd)
+    
+    # Example: Update Check on Init
+    if [[ "$hook_name" == "on_init" ]]; then
+        # Check for framework updates casually (async)
+        (
+            cd "$GEMONADE_HOME"
+            if git remote update >/dev/null 2>&1; then
+                local local_hash=$(git rev-parse @ 2>/dev/null)
+                local remote_hash=$(git rev-parse @{u} 2>/dev/null)
+                if [ -n "$local_hash" ] && [ -n "$remote_hash" ] && [ "$local_hash" != "$remote_hash" ]; then
+                    touch "$STATE_DIR/update_available"
+                fi
+            fi
+        ) &    fi
+
+    # Example: Ingest Memory on Exit
+    if [[ "$hook_name" == "on_exit" ]]; then
+        if [ -f "$GEMONADE_HOME/tools/ingest_memory.py" ]; then
+            # We use the Core Venv python here
+            "$py_cmd" "$GEMONADE_HOME/tools/ingest_memory.py" --project "$context" --persona "$persona" >/dev/null 2>&1
+        fi
+    fi
+}
+
+# 4. Lazy Background Cleanup
 mkdir -p "$STATE_DIR"
 current_time=$(date +%s)
 last_clean_time=0
@@ -43,9 +114,9 @@ if [ $((current_time - last_clean_time)) -gt 86400 ]; then
     fi
 fi
 
-# 3. Helpers
+# 5. Helpers
 usage() {
-    echo "Usage: gemonade [command] [gem]"
+    echo "Usage: gemonade [command] [gem] [--project=<name>]"
     echo ""
     echo "Commands:"
     echo "  run <gem>               Start a session (default command)"
@@ -53,9 +124,14 @@ usage() {
     echo "  install <url|path>      Install a Gem from Git or Local Path"
     echo "  uninstall <gem>         Remove an installed Gem"
     echo "  update <gem>            Update an installed Gem"
+    echo "  advanced-memory <cmd>   Manage Intelligence Pack (enable/disable)"
     echo "  search <term>           Search for Gems on GitHub"
     echo "  config                  Show current configuration"
     echo "  help                    Show this help message"
+    echo ""
+    echo "Flags:"
+    echo "  --project=<name>        Explicitly set the project context tag."
+    echo "  --scope=<mode>          Set visibility scope: project (default), persona, or global."
     echo ""
     echo "💡 Pro Tip: To create new Gems or understand how this framework works,"
     echo "            run 'gemonade sys' to chat with the Gemonade Expert."
@@ -88,7 +164,7 @@ get_json_value() {
     fi
 }
 
-# 4. Command: Install
+# 6. Command: Install
 install_gem() {
     local source=$1
     if [ -z "$source" ]; then
@@ -102,7 +178,6 @@ install_gem() {
     # --- Phase 1: Fetching ---
     if [ -d "$source" ]; then
         # Case A: Local Directory
-        # Resolve absolute path
         local abs_source=$(cd "$source" && pwd)
         temp_name=$(basename "$abs_source")
         install_path="$G_INSTALLED_DIR/$temp_name"
@@ -123,7 +198,6 @@ install_gem() {
         fi
         
         mkdir -p "$G_INSTALLED_DIR"
-        # Copy content, excluding heavy/git items
         cp -r "$abs_source" "$install_path"
         rm -rf "$install_path/.git" "$install_path/.venv" "$install_path/__pycache__"
 
@@ -134,7 +208,6 @@ install_gem() {
             repo_url="https://github.com/$repo_url.git"
         fi
 
-        # Extract name from URL
         temp_name=$(basename "$repo_url" .git)
         install_path="$G_INSTALLED_DIR/$temp_name"
 
@@ -152,7 +225,6 @@ install_gem() {
     fi
 
     # --- Phase 2: Configuration ---
-    # Smart Manifest Renaming
     local manifest_name=$(get_json_value "$install_path/gem.json" "name")
     if [ -n "$manifest_name" ] && [ "$manifest_name" != "$temp_name" ]; then
         if [ -d "$G_INSTALLED_DIR/$manifest_name" ]; then
@@ -165,13 +237,13 @@ install_gem() {
         fi
     fi
 
-    echo "⚙️  Configuring '$temp_name'..."
+    echo "⚙️  Configuring '$temp_name'...
     hydrate_gem "$install_path"
 
     echo "✅ Successfully installed '$temp_name'."
 }
 
-# 5. Command: Uninstall
+# 7. Command: Uninstall
 uninstall_gem() {
     local name=$1
     local path="$G_INSTALLED_DIR/$name"
@@ -180,25 +252,22 @@ uninstall_gem() {
     if [[ "$name" == "sys" || "$name" == "general" ]]; then echo "❌ Cannot uninstall Core gems."; exit 1; fi
     if [ ! -d "$path" ]; then echo "❌ Gem '$name' not found in Installed packages."; exit 1; fi
 
-    echo "🗑️  Uninstalling '$name'..."
+    echo "🗑️  Uninstalling '$name'...
     rm -rf "$path"
     echo "✅ Removed package files. (Session logs preserved)."
 }
 
-# 6. Command: Hydrate (Setup Venv)
+# 8. Command: Hydrate (Setup Venv)
 hydrate_gem() {
     local path=$1
     local gem_json="$path/gem.json"
     
-    # Check for requirements in JSON or file presence
     local req_file=""
     if [ -f "$gem_json" ]; then
-        # Extract from JSON if present
         local json_req=$(get_json_value "$gem_json" "python_dependencies")
         if [ -n "$json_req" ]; then req_file="$path/$json_req"; fi
     fi
     
-    # Fallback/Convention
     if [ -z "$req_file" ] && [ -f "$path/requirements.txt" ]; then
         req_file="$path/requirements.txt"
     fi
@@ -211,18 +280,65 @@ hydrate_gem() {
     fi
 }
 
-# 7. Command: List Personas
+# 9. Advanced Memory Management
+manage_advanced_memory() {
+    local action=$1
+    mkdir -p "$(dirname "$G_CORE_VENV")"
+    
+    if [ ! -d "$G_CORE_VENV" ]; then
+        echo "🐍 Creating Core Venv..."
+        python3 -m venv "$G_CORE_VENV"
+    fi
+
+    if [[ "$action" == "enable" ]]; then
+        echo "🧠 Enabling Advanced Memory..."
+        
+        # Step 1: Force CPU-only PyTorch to save ~1.5GB of disk space
+        echo "   📦 Installing lightweight CPU-only AI engine..."
+        if ! "$G_CORE_VENV/bin/pip" install torch --index-url https://download.pytorch.org/whl/cpu; then
+            echo "   ⚠️  Warning: CPU-only pre-install failed. Attempting standard install..."
+        fi
+
+        echo "   📦 Installing ChromaDB and recall tools..."
+        if "$G_CORE_VENV/bin/pip" install -r "$GEMONADE_HOME/tools/requirements.txt"; then
+            echo "   ✅ Advanced Memory Enabled."
+        else
+            echo "   ❌ Installation failed. Please check your disk space or connection."
+            return 1
+        fi
+        
+    elif [[ "$action" == "disable" ]]; then
+        echo "🧠 Disabling Advanced Memory..."
+        
+        # 1. Clean up Storage
+        local db_path="$STATE_DIR/chroma_db"
+        if [ -d "$db_path" ]; then
+            echo "   🗑️  Removing Vector Database ($db_path)..."
+            rm -rf "$db_path"
+        else
+            echo "   ⚪ No Vector Database found."
+        fi
+
+        # 2. Clean up Libraries
+        echo "   🧹 Uninstalling heavy dependencies..."
+        "$G_CORE_VENV/bin/pip" uninstall -y chromadb sentence-transformers >/dev/null 2>&1
+        
+        echo "   ✅ Advanced Memory Disabled (Space Reclaimed)."
+    else
+        echo "Usage: gemonade advanced-memory [enable|disable]"
+    fi
+}
+
+# 10. Command: List Personas
 list_personas() {
     echo "Available Gemonade Gems:"
     
-    # 1. Gather all potential names
     local names
     names=$(ls -d "$G_PACKAGE_ROOT/core/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
     names+=" "$(ls -d "$G_INSTALLED_DIR/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
     names+=" "$(ls -d "$G_PACKAGE_ROOT/local/"* 2>/dev/null | xargs -n 1 basename 2>/dev/null)
     unique_names=$(echo "$names" | tr ' ' '\n' | sort -u)
 
-    # 2. Bucketize based on resolved path
     local list_local=""
     local list_installed=""
     local list_core=""
@@ -232,14 +348,11 @@ list_personas() {
         persona_file=$(find_persona_file "$name")
         
         if [ -f "$persona_file" ]; then
-            # Extract objective
             desc=$(grep -m 1 "Objective:" "$persona_file" | sed -E 's/.*Objective:[ *]*//' | sed 's/[ *]*$//')
             [ -z "$desc" ] && desc="No objective defined."
             
-            # Format the line
             line=$(printf "  - %-15s : %s" "$name" "$desc")
             
-            # Determine source category and append with explicit newline
             if [[ "$persona_file" == *"/packages/local/"* ]]; then
                 list_local="${list_local}${line}"$'\n'
             elif [[ "$persona_file" == *"/packages/installed/"* ]]; then
@@ -250,7 +363,6 @@ list_personas() {
         fi
     done
 
-    # 3. Print Groups
     echo ""
     echo "LOCAL (Private & Custom)"
     [ -n "$list_local" ] && echo -n "$list_local" || echo "  (none)"
@@ -265,11 +377,14 @@ list_personas() {
     echo ""
 }
 
-# 8. Command: Run Persona
+# 11. Command: Run Persona (Updated for V4)
 run_persona() {
     local persona=$1
+    local project_flag=$2
+    local scope=$3
+    
     [ -z "$persona" ] && persona="general"
-
+    [ -z "$scope" ] && scope="project"
     local persona_file=$(find_persona_file "$persona")
 
     if [ ! -f "$persona_file" ]; then
@@ -277,38 +392,74 @@ run_persona() {
         exit 1
     fi
 
-    # Determine Package Home
+    # V4: Detect Context
+    local project_ctx=$(detect_project_context "$project_flag")
+    export GEMONADE_PROJECT="$project_ctx"
+    export GEMONADE_SCOPE="$scope"
+    export GEMONADE_PERSONA="$persona"
+    
+    # V4: Init Hook
+    run_hook "on_init" "$project_ctx" "$persona"
+    
+    # Notify user of context
+    if [ -f "$STATE_DIR/update_available" ]; then
+        echo "ℹ️  Gemonade Update Available."
+    fi
+    echo "💎 Gemonade: [$persona] @ [$project_ctx] (Scope: $scope)"
+
     local package_home=$(dirname "$persona_file")
-    
-    echo "💎 Initializing Gemonade: [$persona]"
-    
-    # Ensure session directory and state directory exist
-    mkdir -p "$G_KNOWLEDGE_DIR/sessions/$persona"
+    # V4.1: strict isolation
+    mkdir -p "$G_KNOWLEDGE_DIR/sessions/$persona/$project_ctx"
     mkdir -p "$STATE_DIR"
 
-    # Hydration Check (Just in case user manually created folder)
+    # V4.1: Generate Scope Directive
+    local scope_md="$STATE_DIR/scope_${persona}_$$.md"
+    {
+        echo "# ⚠️ Active Access Scope: ${scope^^}"
+        case "$scope" in
+            persona)
+                echo "You have been granted PERSONA-WIDE visibility."
+                echo "- You may reference ANY project session logs belonging to the '$persona' persona."
+                echo "- Fallback search path: \`knowledge/sessions/$persona/\`"
+                echo "- When using \`recall.py\`, do NOT filter by project context unless specifically asked."
+                ;;
+            global)
+                echo "You have been granted GLOBAL visibility (God Mode)."
+                echo "- You may reference ANY session logs across ALL personas and projects."
+                echo "- Fallback search path: \`knowledge/sessions/\`"
+                echo "- When using \`recall.py\`, disable all project filters."
+                ;;
+            *)
+                echo "Standard PROJECT isolation is active."
+                echo "- You must only reference session logs within the current project context: '$project_ctx'."
+                echo "- Fallback search path: \`knowledge/sessions/$persona/$project_ctx/\`"
+                ;;
+        esac
+    } > "$scope_md"
+
     if [ ! -d "$package_home/.venv" ] && [ -f "$package_home/requirements.txt" ]; then
         echo "⚠️  Missing environment. Hydrating..."
         hydrate_gem "$package_home"
     fi
 
-    # Combine Core + Persona for the system prompt
     local active_system_md="$STATE_DIR/system_${persona}_$$.md"
-    cat "$G_CORE_PERSONA" "$persona_file" > "$active_system_md"
-    trap "rm -f '$active_system_md'" EXIT
+    cat "$G_CORE_PERSONA" "$scope_md" "$persona_file" > "$active_system_md"
+    trap "rm -f '$active_system_md' '$scope_md'" EXIT
 
     # --- Runtime Environment Setup ---
     
+    # 0. Core Tools Path (V4: Enable recall.py)
+    if [ -d "$GEMONADE_HOME/tools" ]; then
+        export PATH="$GEMONADE_HOME/tools:$PATH"
+    fi
+
     # 1. Tools Path
     if [ -d "$package_home/tools" ]; then
         export PATH="$package_home/tools:$PATH"
     fi
     
-    # 2. Python Venv (The Critical Bit)
     if [ -d "$package_home/.venv" ]; then
-        # We prepend the venv bin to PATH so 'python3' calls use the venv
         export PATH="$package_home/.venv/bin:$PATH"
-        # We also set VIRTUAL_ENV variable for politeness
         export VIRTUAL_ENV="$package_home/.venv"
     fi
 
@@ -316,63 +467,90 @@ run_persona() {
     GEMINI_SYSTEM_MD="$active_system_md" gemini --include-directories "$G_KNOWLEDGE_DIR"
 
     # Post-session: Run the Saver
-    if [ -f "$G_SAVER_SCRIPT" ]; then
-        # Note: We use the SYSTEM python for the saver, not the Gem's python
-        /usr/bin/env python3 "$G_SAVER_SCRIPT" "$G_KNOWLEDGE_DIR/sessions/$persona"
-    fi
+    # IMPORTANT: We use the SYSTEM python for the saver because it has no deps,
+    # but the INGESTER (in run_hook) uses the Core Venv.
+    /usr/bin/env python3 "$G_SAVER_SCRIPT" "$G_KNOWLEDGE_DIR/sessions/$persona/$project_ctx" --project "$project_ctx"
+    
+    # V4: Exit Hook
+    run_hook "on_exit" "$project_ctx" "$persona"
 }
 
-# 9. Command Dispatch
-case "$1" in
-    list)
-        list_personas
-        ;;
-    install)
-        shift
-        install_gem "$@"
-        ;;
-    uninstall)
-        shift
-        uninstall_gem "$@"
-        ;;
+# 12. Command Dispatch & Arg Parsing
+CMD=""
+GEM=""
+PROJECT_FLAG=""
+SCOPE_FLAG="project"
+SUB_CMD=""
+
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    --project=*) 
+      PROJECT_FLAG="${key#*=}"
+      shift
+      ;; 
+    --scope=*)
+      SCOPE_FLAG="${key#*=}"
+      shift
+      ;;
+    --help|-h)
+      CMD="help"
+      shift
+      ;;
+    advanced-memory)
+      CMD="advanced-memory"
+      shift
+      if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+          SUB_CMD="$1"
+          shift
+      fi
+      ;; 
+    list|install|uninstall|update|search|config|help|run)
+      CMD="$1"
+      shift
+      ;; 
+    *) 
+      if [ -z "$CMD" ]; then CMD="run"; GEM="$1"; else GEM="$1"; fi
+      shift
+      ;; 
+  esac
+done
+
+if [ -z "$CMD" ]; then CMD="run"; GEM="general"; fi
+
+case "$CMD" in
+    list) list_personas ;; 
+    install) install_gem "$GEM" ;; 
+    uninstall) uninstall_gem "$GEM" ;; 
     update) 
-        shift
-        name=$1
-        path="$G_INSTALLED_DIR/$name"
+        path="$G_INSTALLED_DIR/$GEM"
         if [ -d "$path" ]; then
-            echo "⬇️  Updating $name..."
+            echo "⬇️  Updating $GEM..."
             (cd "$path" && git pull)
             hydrate_gem "$path"
         else
-            echo "❌ Gem not found."
+            echo "❌ Gem '$GEM' not found in Installed packages."
         fi
-        ;;
+        ;; 
     search)
-        shift
         if [ -f "$GEMONADE_HOME/tools/search.py" ]; then
-            python3 "$GEMONADE_HOME/tools/search.py" "$@"
+            python3 "$GEMONADE_HOME/tools/search.py" "$GEM"
         else
             echo "❌ Search tool missing."
         fi
-        ;;
-    config)
-        echo "Gemonade Configuration:"
-        echo "  Home:          $GEMONADE_HOME"
-        echo "  Packages:      $G_PACKAGE_ROOT"
-        echo "  Knowledge:     $G_KNOWLEDGE_DIR"
-        echo "  Core Logic:    $G_CORE_PERSONA"
-        ;;
-    help|--help|-h)
-        usage
-        ;;
-    run)
-        shift
-        run_persona "$1"
-        ;;
-    "")
-        run_persona "general"
-        ;;
-    *)
-        run_persona "$1"
-        ;;
+        ;; 
+    advanced-memory) manage_advanced_memory "$SUB_CMD" ;; 
+        config) 
+            echo "Gemonade Configuration:"
+            echo "  Home:          $GEMONADE_HOME"
+            echo "  Packages:      $G_PACKAGE_ROOT"
+            echo "  Knowledge:     $G_KNOWLEDGE_DIR"
+            echo "  Core Logic:    $G_CORE_PERSONA"
+            echo "  Context:       $(detect_project_context "$PROJECT_FLAG")"
+            echo "  Scope:         $SCOPE_FLAG"
+            ;; 
+     
+    help|--help|-h) usage ;; 
+    run) run_persona "$GEM" "$PROJECT_FLAG" "$SCOPE_FLAG" ;; 
+    *) run_persona "$GEM" "$PROJECT_FLAG" "$SCOPE_FLAG" ;; 
 esac

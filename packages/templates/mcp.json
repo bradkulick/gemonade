@@ -1,0 +1,32 @@
+{
+  "mcpVersion": "1.0.0",
+  "name": "my-gem-tools",
+  "description": "Tools exposed by this Gemonade Gem",
+  "tools": [
+    {
+      "name": "example_tool",
+      "description": "An example tool that demonstrates the JSON structure.",
+      "executable": "python3",
+      "arguments": [
+        "scripts/my_script.py",
+        "--target",
+        "{target}"
+      ],
+      "env": {
+        "API_KEY": "${MY_API_KEY}"
+      },
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "The target argument for the script"
+          }
+        },
+        "required": [
+          "target"
+        ]
+      }
+    }
+  ]
+}

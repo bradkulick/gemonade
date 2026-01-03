@@ -6,6 +6,7 @@
 GEMONADE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BIN_DIR="$HOME/bin"
 CONFIG_FILE="$HOME/.gemonade_config"
+CORE_VENV="$HOME/.gemonade/.venv"
 
 echo "💎 Installing Gemonade Framework..."
 
@@ -59,15 +60,40 @@ fi
 mkdir -p "$GEMONADE_ROOT/knowledge/sessions"
 mkdir -p "$GEMONADE_ROOT/packages/installed"
 mkdir -p "$GEMONADE_ROOT/packages/local"
+mkdir -p "$(dirname "$CORE_VENV")"
 
-# 4. Success Message
+# 5. Set up Core Virtual Environment
+echo "🐍 Setting up Core Python Environment at $CORE_VENV..."
+if [ ! -d "$CORE_VENV" ]; then
+    python3 -m venv "$CORE_VENV"
+fi
+
+# 6. Optional: Intelligence Pack
+echo ""
+echo "🧠 Intelligence Pack (Optional)"
+echo "   Enables 'Advanced Memory' using a local Vector Database (ChromaDB)."
+echo "   Allows Gems to remember context across sessions."
+echo "   ⚠️  Storage Impact: ~600MB - 1GB"
+echo ""
+read -p "   Install Intelligence Pack now? [y/N] " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "   📦 Installing ChromaDB and dependencies (this may take a minute)..."
+    "$CORE_VENV/bin/pip" install -r "$GEMONADE_ROOT/tools/requirements.txt"
+    echo "   ✅ Intelligence Pack Installed."
+else
+    echo "   ⚪ Skipping. You can install later with 'gemonade setup-memory'."
+fi
+
+# 7. Success Message
 echo ""
 echo "✅ Gemonade Installation Complete!"
 echo "-------------------------------------------------------"
 echo "To get started:"
 echo "1. Ensure ~/bin is in your PATH."
-echo "   Run this command now: export PATH=\"\$HOME/bin:\$PATH\""
-echo "   (Add that line to your ~/.bashrc to make it permanent)"
+   echo "   Run this command now: export PATH=\"\$HOME/bin:\$PATH\""
+   echo "   (Add that line to your ~/.bashrc to make it permanent)"
+
 echo "2. Run 'gemonade list' to see available personas."
 echo "3. Run 'gemonade sys' to meet your framework administrator."
 echo "-------------------------------------------------------"
