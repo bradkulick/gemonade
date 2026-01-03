@@ -22,43 +22,43 @@ All notable changes to the Gemonade framework will be documented in this file.
 ### Added
 - Added "Explicit Confirmation Barrier" to safety protocols to prevent execution on ambiguous or conceptual agreement.
 
-## [v4.2.0] - 2026-01-02 (The Memory Control Update)
+## [v4.2.0] - 2026-01-03 (The Memory Control Update)
 ### Changed
 - Optimized session ingestion and context management logic.
 - Established versioning for the `bin/gemonade` launcher.
 
-## [v4.1.0] - 2025-12-30 (The Advanced Recall Update)
+## [v4.1.0] - 2026-01-02 (The Advanced Recall Update)
 ### Added
 - Integrated semantic search functionality via `tools/recall.py`.
 - Added long-term memory ingestion for cross-session knowledge retrieval.
 
-## [v4.0.0] - 2025-12-26 (The Gemonade Rebirth)
-### Changed
-- **Major Rebrand:** Transitioned from "Geode" to "Gemonade".
-- Established the **Gem Package Standard (GPS)** as the primary architecture.
-
-## [v3.1.0] - 2025-12-24 (The Operational Integrity Update)
+## [v3.1.0] - 2026-01-02 (The Operational Integrity Update)
 ### Added
 - **Context Preservation Protocol:** Strictly forbidding summarization/elision of technical data.
 - **Rationale-First Communication:** Requiring plans and reasoning before state-changing commands.
 - **Advisory Protocol:** Added proactive guidance for Gem graduation (Pilot vs. Skill rubric).
 
-## [v3.0.0] - 2025-12-22 (The Ecosystem Release)
+## [v3.0.0] - 2026-01-02 (The Ecosystem Release)
 ### Added
 - **Discovery:** Implemented `gemonade search` to query GitHub for `gemonade-gem` tagged repositories.
 - **Graduation:** Created `tools/gem_2_extension.py` to convert mature Gems into native Gemini CLI Extensions.
 - **Publishing:** Created `tools/publish.py` for automated SemVer and Git tagging.
 
-## [v2.0.0] - 2025-12-10 (The Gem Ecosystem)
+## [v2.0.0] - 2025-12-31 (The Gem Ecosystem)
 ### Added
 - Initial implementation of the "Gem" concept for portable, shareable personas.
 
-## [v1.5.0] - 2025-12-05 (Unified Package Architecture)
+## [v1.6.0] - 2025-12-27 (The Gemonade Rebrand)
+### Changed
+- **Major Rebrand:** Transitioned the project from "Geode" to "Gemonade".
+- Updated internal logic, configuration paths, and documentation to reflect the new identity.
+
+## [v1.5.0] - 2025-12-26 (Unified Package Architecture)
 ### Changed
 - Support for `local`, `installed`, and `core` namespaces.
 - Unified package structure for consistent persona management.
 
-## [v1.0.0] - 2025-12-01 (Initial Stable Release)
+## [v1.0.0] - 2025-12-26 (Initial Stable Release)
 ### Added
 - Persona-driven CLI wrapper for the Gemini CLI.
 - Session logging and context management.
