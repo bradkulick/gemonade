@@ -84,8 +84,12 @@ run_hook() {
             if git remote update >/dev/null 2>&1; then
                 local local_hash=$(git rev-parse @ 2>/dev/null)
                 local remote_hash=$(git rev-parse @{u} 2>/dev/null)
-                if [ -n "$local_hash" ] && [ -n "$remote_hash" ] && [ "$local_hash" != "$remote_hash" ]; then
-                    touch "$STATE_DIR/update_available"
+                if [ -n "$local_hash" ] && [ -n "$remote_hash" ]; then
+                    if [ "$local_hash" != "$remote_hash" ]; then
+                        touch "$STATE_DIR/update_available"
+                    else
+                        rm -f "$STATE_DIR/update_available"
+                    fi
                 fi
             fi
         ) &    fi
