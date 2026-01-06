@@ -226,6 +226,7 @@ install_gem() {
         echo "📦 Cloning $repo_url..."
         mkdir -p "$G_INSTALLED_DIR"
         git clone "$repo_url" "$install_path" || { echo "❌ Clone failed"; exit 1; }
+        rm -rf "$install_path/.git"
     fi
 
     # --- Phase 2: Configuration ---
@@ -241,7 +242,7 @@ install_gem() {
         fi
     fi
 
-    echo "⚙️  Configuring '$temp_name'...
+    echo "⚙️  Configuring '$temp_name'..."
     hydrate_gem "$install_path"
 
     echo "✅ Successfully installed '$temp_name'."
@@ -256,7 +257,7 @@ uninstall_gem() {
     if [[ "$name" == "sys" || "$name" == "general" ]]; then echo "❌ Cannot uninstall Core gems."; exit 1; fi
     if [ ! -d "$path" ]; then echo "❌ Gem '$name' not found in Installed packages."; exit 1; fi
 
-    echo "🗑️  Uninstalling '$name'...
+    echo "🗑️  Uninstalling '$name'..."
     rm -rf "$path"
     echo "✅ Removed package files. (Session logs preserved)."
 }

@@ -2,6 +2,15 @@
 
 All notable changes to the Gemonade framework will be documented in this file.
 
+## [v4.2.5] - 2026-01-05 (The Hygienic Installer Update)
+### Fixed
+- Fixed `gemonade install` to correctly strip `.git` directories when cloning from remote URLs, ensuring installed gems are treated as static packages.
+- Fixed syntax errors (missing quotes) in `bin/gemonade` logging.
+
+### Ecosystem
+- Standardized `anki-forge` to v0.3.0 with Blueprint architecture and Smart Packing.
+- Updated V4 Roadmap to include plans for "Graceful Uninstall" (data preservation).
+
 ## [v4.2.4] - 2026-01-05 (The Polished Notifier Update)
 ### Fixed
 - Fixed `bin/gemonade` to automatically clear the update notification flag when the local repository is up-to-date.

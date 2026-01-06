@@ -15,3 +15,13 @@ Following the successful implementation of the Gem Ecosystem and Lifecycle tools
 ## 3. Automation & Orchestration
 *   **Native Task Runner:** Replace the background Bash cleanup script with a native Python-based task manager (`gemonade-daemon`) for granular control and scheduling.
 *   **Update Notifications:** Alert the user when the core framework or an installed Gem has updates available (using `git fetch` checks).
+
+## 4. Backlog / Candidate Improvements
+*   **Graduate `anki-forge` to Extension:**
+    *   **Goal:** Transform it from a "Flashcard Factory" (Gem) into a "Photographic Memory" (Skill).
+    *   **Rationale:** Flashcard creation is a cross-cutting concern relevant in *all* contexts (coding, reading, planning). An extension allows usage via `@anki` without switching personas.
+    *   **Technical:** Migrate `library.jsonl` to the extension's `state/` directory to maintain persistence while becoming globally accessible.
+*   **Graceful Uninstall (Data Preservation):**
+    *   **Goal:** Upgrade `gemonade uninstall` to prompt users before deleting user-generated data.
+    *   **Rationale:** Gems like `anki-forge` store persistent data in `data/` which is currently destroyed by a blind `rm -rf`.
+    *   **Implementation:** Detect non-code artifacts (e.g., `data/`, `*.db`, `*.jsonl`) and prompt: "User data detected. Archive before uninstalling? [Y/n]".
