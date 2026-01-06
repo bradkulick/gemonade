@@ -2,6 +2,10 @@
 
 All notable changes to the Gemonade framework will be documented in this file.
 
+## [v4.2.4] - 2026-01-05 (The Polished Notifier Update)
+### Fixed
+- Fixed `bin/gemonade` to automatically clear the update notification flag when the local repository is up-to-date.
+
 ## [v4.2.3] - 2026-01-03 (The Attribution Update)
 ### Added
 - Added `generator` field to `gem.json` to track system-created gems.
