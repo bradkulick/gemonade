@@ -151,7 +151,11 @@ def get_gems_list(config):
 # --- Search Capability ---
 def search_gems(query):
     """Search for Gems using 'gh' CLI or fallback to GitHub API."""
-    print_msg("🔍", f"Searching for Gemonade Gems matching: '{query}'...")
+    if query:
+        print_msg("🔍", f"Searching for Gemonade Gems matching: '{query}'...")
+    else:
+        print_msg("🔍", "Discovering popular Gemonade Gems...")
+    
     results = []
     
     # Method 1: GitHub CLI (Preferred for auth/rate limits)
@@ -328,10 +332,39 @@ def run_persona(persona, project_flag, scope, config, dry_run=False):
     else:
         scope_md += f"PROJECT isolation active for '{project_ctx}'.\n"
 
+    # --- V6 Memory Injection (The Recap) ---
+    # Read history.jsonl from the session dir
+    ledger_path = session_dir / "history.jsonl"
+    recent_history = ""
+    if ledger_path.exists():
+        try:
+            lines = ledger_path.read_text().splitlines()
+            # Get last 5 entries
+            last_5 = lines[-5:]
+            recent_history = "\n# 🧠 Recent Memory (The Recap)\n"
+            for line in last_5:
+                try:
+                    entry = json.loads(line)
+                    date = entry.get('display_date', 'Unknown Date')
+                    topic = entry.get('topic', 'No Topic')
+                    file = entry.get('file', '')
+                    recent_history += f"- **{date}**: {topic} (Ref: `{file}`)\n"
+                except: pass
+            recent_history += "\n"
+        except Exception as e:
+            recent_history = f"\n# ⚠️ Memory Error: Could not read history: {e}\n"
+
     core_persona_path = Path(config["G_CORE_PERSONA"])
     system_md_content = ""
     if core_persona_path.exists():
         system_md_content += core_persona_path.read_text() + "\n\n"
+    
+    # Inject History BEFORE Scope so Scope is the final authority? 
+    # Or AFTER Core Persona?
+    # Best place: After Core, Before Scope/Persona specific instructions.
+    if recent_history:
+        system_md_content += recent_history
+        
     system_md_content += scope_md + "\n\n"
     system_md_content += persona_file.read_text()
 
@@ -423,7 +456,9 @@ def main():
     mem = subparsers.add_parser("advanced-memory", help="Manage intelligence pack")
     mem.add_argument("action", choices=["enable", "disable"])
     mem.add_argument("--dry-run", action="store_true")
-    subparsers.add_parser("search", help="Search GitHub for Gems").add_argument("query")
+    
+    search_p = subparsers.add_parser("search", help="Search GitHub for Gems")
+    search_p.add_argument("query", nargs="?", default="")
 
     if len(sys.argv) == 1: args = parser.parse_args(["run", "general"])
     elif sys.argv[1] not in subparsers.choices and not sys.argv[1].startswith("-"): args = parser.parse_args(["run"] + sys.argv[1:])

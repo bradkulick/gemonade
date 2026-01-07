@@ -134,6 +134,57 @@ def main():
 
         print(f"✅ Session saved to: {output_path}")
 
+        # --- V6 Memory Indexing (The Ledger) ---
+        topic = "General Session"
+        
+        # Method 1: Parse the Session Summary Protocol block (```summary)
+        summary_found = False
+        # Search messages in reverse (last AI message is most likely to have it)
+        for msg in reversed(data.get('messages', [])):
+            if msg['type'] == 'gemini':
+                content = msg.get('content', '')
+                if '```summary' in content:
+                    try:
+                        # Extract block content
+                        block = content.split('```summary')[1].split('```')[0].strip()
+                        lines = block.split('\n')
+                        goal = ""
+                        outcome = ""
+                        for line in lines:
+                            if line.upper().startswith('GOAL:'): goal = line.split(':', 1)[1].strip()
+                            if line.upper().startswith('OUTCOME:'): outcome = line.split(':', 1)[1].strip()
+                        
+                        if goal or outcome:
+                            topic = f"{goal} -> {outcome}"
+                            if len(topic) > 100: topic = topic[:97] + "..."
+                            print(f"📚 Indexed via Self-Summary: '{topic}'")
+                            summary_found = True
+                            break
+                    except: pass
+        
+        if not summary_found:
+            # Method 2: Fallback to First User Prompt
+            for msg in data.get('messages', []):
+                if msg['type'] == 'user':
+                    content = msg.get('content', '').strip()
+                    if content:
+                        first_line = content.split('\n')[0]
+                        topic = (first_line[:75] + '...') if len(first_line) > 75 else first_line
+                        print(f"📚 Indexed via First Prompt: '{topic}'")
+                        break
+        
+        # Save to centralized Ledger
+        ledger_path = os.path.join(dest_dir, "history.jsonl")
+        ledger_entry = {
+            "date": date_str,
+            "display_date": display_date,
+            "file": filename,
+            "topic": topic
+        }
+        
+        with open(ledger_path, 'a') as f:
+            f.write(json.dumps(ledger_entry) + "\n")
+
     except Exception as e:
         print(f"Error processing session log: {e}")
         sys.exit(1)
