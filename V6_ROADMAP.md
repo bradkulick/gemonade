@@ -23,21 +23,11 @@ Instead of duplicating data into a vector store (which requires sync, ingest, an
     > - 2025-01-02: Added Smoke Tests.
     > - 2025-01-03: Fixed Path Traversal bug.
 
-## 3. Recall Architecture (The "Grep" Model)
+## 3. Recall Strategy (Manual Integration)
 
-### A. Dependency-Free Search
-**Mechanism:** Re-implement `recall.py` to use `ripgrep` (if available) or optimized Python text search.
-*   **Command:** `gemonade recall "error"`
-*   **Logic:**
-    1.  Scan `knowledge/sessions/<scope>/`.
-    2.  Find files containing the keyword.
-    3.  Extract the surrounding "Turn" (User Prompt + AI Response).
-    4.  Return the top 3 most recent turns.
-
-### B. Semantic-Lite
-**Concept:** We don't need vectors for everything.
-*   **Tagging:** Allow users to tag sessions: `gemonade tag "aws-fix"`.
-*   **Lookup:** `gemonade recall --tag aws-fix`.
+**Decision:** We explicitly reject a dedicated `recall` command to avoid abstraction layers.
+*   **Mechanism:** Users and Personas rely on standard filesystem tools (`grep`, `find`, `list_directory`) to navigate the `knowledge/` base.
+*   **Benefit:** Keeps the interface transparent and the codebase minimal.
 
 ## 4. The Benefit (Why we are doing this)
 1.  **Zero External Dependencies:** No PyTorch, no Embeddings API key, no Cloud cost.

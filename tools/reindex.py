@@ -6,36 +6,37 @@ Scans existing session logs and backfills the 'history.jsonl' ledger.
 
 import os
 import json
-import glob
+import sys
 from pathlib import Path
 from datetime import datetime
 
-GEMONADE_ROOT = Path(__file__).resolve().parent.parent
-KNOWLEDGE_DIR = GEMONADE_ROOT / "knowledge" / "sessions"
+# Add project root to sys.path to allow imports from core
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from core.gemonade import print_msg, print_err
+
+KNOWLEDGE_DIR = PROJECT_ROOT / "knowledge" / "sessions"
 
 def index_file(filepath):
     try:
         content = filepath.read_text()
-        
-        # 1. Extract Date
-        # Filename format: session_YYYYMMDD_HHMM.md
         filename = filepath.name
         date_str = "Unknown"
         display_date = "Unknown"
+        
         if filename.startswith("session_"):
             try:
-                # session_20251230_1913.md
-                dt_part = filename.split("_")[1] # 20251230
-                time_part = filename.split("_")[2].split(".")[0] # 1913
+                parts = filename.split("_")
+                dt_part = parts[1]
+                time_part = parts[2].split(".")[0]
                 dt = datetime.strptime(f"{dt_part}{time_part}", "%Y%m%d%H%M")
                 date_str = dt.strftime('%Y%m%d_%H%M')
                 display_date = dt.strftime('%A, %B %d, %Y')
             except: pass
 
-        # 2. Extract Topic
         topic = "Legacy Session"
         
-        # Method A: Look for Summary Block
         if "```summary" in content:
             try:
                 block = content.split("```summary")[1].split("```")[0]
@@ -46,13 +47,10 @@ def index_file(filepath):
                     topic = f"{goal} -> {outcome}"
             except: pass
         
-        # Method B: First User Prompt
         if topic == "Legacy Session":
-            # Very rough parsing of MD structure
-            # ## 👤 User\n\nPrompt...
             parts = content.split("## 👤 User")
             if len(parts) > 1:
-                prompt = parts[1].strip().split("\n")[0] # First line of prompt
+                prompt = parts[1].strip().split("\n")[0]
                 if prompt:
                     topic = (prompt[:75] + '...') if len(prompt) > 75 else prompt
 
@@ -64,16 +62,17 @@ def index_file(filepath):
         }
 
     except Exception as e:
-        print(f"Failed to parse {filepath.name}: {e}")
+        print_err(f"Failed to parse {filepath.name}: {e}")
         return None
 
 def main():
-    print(f"🧠 Re-indexing session history from: {KNOWLEDGE_DIR}")
+    print_msg("🧠", f"Re-indexing session history from: {KNOWLEDGE_DIR}")
     
-    # Iterate over all project folders
-    # Structure: sessions/{persona}/{project}/*.md
+    if not KNOWLEDGE_DIR.exists():
+        print_err("Knowledge directory not found.")
+        return
+
     personas = [d for d in KNOWLEDGE_DIR.iterdir() if d.is_dir() and d.name != "archive"]
-    
     total_indexed = 0
     
     for persona_dir in personas:
@@ -81,8 +80,6 @@ def main():
             if not project_dir.is_dir(): continue
             
             ledger_path = project_dir / "history.jsonl"
-            
-            # Find all MD files
             md_files = sorted(project_dir.glob("session_*.md"))
             if not md_files: continue
             
@@ -94,14 +91,13 @@ def main():
                 if entry:
                     entries.append(entry)
             
-            # Write Ledger (Overwrite mode to ensure clean slate)
             if entries:
                 with open(ledger_path, 'w') as f:
                     for e in entries:
                         f.write(json.dumps(e) + "\n")
                 total_indexed += len(entries)
 
-    print(f"✅ Re-indexing complete. Processed {total_indexed} sessions.")
+    print_msg("✅", f"Re-indexing complete. Processed {total_indexed} sessions.")
 
 if __name__ == "__main__":
     main()

@@ -11,8 +11,7 @@ class TestGemonadeMemory(BaseGemonadeTest):
         
         state = json.loads(result.stdout)
         self.assertEqual(state["action"], "enable")
-        # Ensure it targets the correct venv path in our temp env
-        self.assertIn(str(self.temp_env), state["target_venv"])
+        self.assertEqual(state["status"], "deprecated")
 
     def test_memory_disable_dry_run(self):
         """Verify the memory disable command dry-run logic."""
@@ -21,6 +20,7 @@ class TestGemonadeMemory(BaseGemonadeTest):
         
         state = json.loads(result.stdout)
         self.assertEqual(state["action"], "disable")
+        self.assertEqual(state["status"], "deprecated")
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Gemonade Core CLI (v5.0.0)
+Gemonade Core CLI (v5.2.0)
 The Python-powered brain of the Gemonade framework.
 """
 
@@ -16,13 +16,20 @@ import urllib.error
 import urllib.parse
 from pathlib import Path
 
+try:
+    from dotenv import load_dotenv
+    HAS_DOTENV = True
+except ImportError:
+    HAS_DOTENV = False
+
+
 # --- Configuration & Paths ---
 GEMONADE_HOME = Path(__file__).resolve().parent.parent
 CONFIG_FILE = Path.home() / ".gemonade_config"
 STATE_DIR = Path.home() / ".gemonade"
 G_CORE_VENV = STATE_DIR / ".venv"
 
-# Default Paths (Overrideable via ~/.gemonade_config)
+# Default Paths
 DEFAULTS = {
     "G_KNOWLEDGE_DIR": str(GEMONADE_HOME / "knowledge"),
     "G_PACKAGE_ROOT": str(GEMONADE_HOME / "packages"),
@@ -31,20 +38,36 @@ DEFAULTS = {
     "GEMONADE_RETENTION_DAYS": "30"
 }
 
+# Shared State for Global Flags
+FLAGS = {"verbose": False}
+
 def load_config(config_path=None):
-    """Loads key-value pairs from .gemonade_config and merges with defaults."""
+    """Loads Gemonade configuration. Prefers python-dotenv, fallbacks to manual parsing."""
     config = DEFAULTS.copy()
     target_config = Path(config_path) if config_path else CONFIG_FILE
     
-    if target_config.exists():
-        with open(target_config, 'r') as f:
+    if not target_config.exists():
+        return config
+
+    if HAS_DOTENV:
+        load_dotenv(dotenv_path=target_config)
+    else:
+        # Robust Manual Fallback
+        with open(target_config, "r") as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    # Strip quotes and whitespace
-                    value = value.strip().strip('"').strip("'")
-                    config[key.strip()] = value
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    line = line.replace("export ", "", 1)
+                    key, value = line.split("=", 1)
+                    value = value.split("#")[0].strip().strip('"').strip("'")
+                    os.environ[key.strip()] = value
+
+    for key in DEFAULTS:
+        if os.environ.get(key):
+            config[key] = os.environ.get(key)
+    
     return config
 
 # --- UI Helpers ---
@@ -53,6 +76,25 @@ def print_msg(emoji, message):
 
 def print_err(message):
     print(f"❌ Error: {message}", file=sys.stderr)
+
+def log_debug(message):
+    if FLAGS["verbose"]:
+        print(f"🔍 DEBUG: {message}")
+
+def run_proc(cmd, cwd=None, check=True):
+    """Unified subprocess runner with verbosity control."""
+    log_debug(f"Running command: {' '.join(cmd) if isinstance(cmd, list) else cmd}")
+    
+    # If not verbose, hide stdout/stderr unless there's an error
+    stdout = None if FLAGS["verbose"] else subprocess.PIPE
+    stderr = None if FLAGS["verbose"] else subprocess.STDOUT
+    
+    try:
+        return subprocess.run(cmd, cwd=cwd, check=check, text=True, stdout=stdout, stderr=stderr)
+    except subprocess.CalledProcessError as e:
+        if not FLAGS["verbose"] and e.stdout:
+            print(e.stdout)
+        raise e
 
 # --- Safety & Validation ---
 def validate_gem_name(name):
@@ -63,13 +105,20 @@ def validate_gem_name(name):
         raise ValueError(f"Invalid Gem name '{name}'. Only alphanumeric, '.', '_', and '-' characters allowed.")
     return name
 
+def validate_manifest(data):
+    """Validates the Gem manifest against the Gemonade Package Standard (GPS)."""
+    required = ["name", "version", "description"]
+    for field in required:
+        if field not in data:
+            raise ValueError(f"Manifest missing required field: '{field}'")
+    return data
+
 def get_safe_installed_path(config, name):
     """Resolves a Gem path and ensures it stays within the 'installed' directory."""
     clean_name = validate_gem_name(name)
     root = (Path(config["G_PACKAGE_ROOT"]) / "installed").resolve()
     target = (root / clean_name).resolve()
     
-    # Strict Containment Check
     if not str(target).startswith(str(root)):
          raise ValueError(f"Security Alert: Path traversal attempted for '{name}'")
     
@@ -103,14 +152,12 @@ def detect_project_context(explicit_flag=None):
 def find_persona_file(name, config):
     root = Path(config["G_PACKAGE_ROOT"])
     
-    # Priority: Local > Installed > Core
     search_paths = [
         root / "local" / name / "persona.md",
         root / "installed" / name / "persona.md",
         root / "core" / name / "persona.md"
     ]
     
-    # Special cases for sys/general
     if name == "sys":
         search_paths.append(root / "core" / "sys" / "persona.md")
     if name == "general":
@@ -158,8 +205,8 @@ def search_gems(query):
     
     results = []
     
-    # Method 1: GitHub CLI (Preferred for auth/rate limits)
     if shutil.which("gh"):
+        log_debug("Searching via GitHub CLI...")
         cmd = [
             "gh", "search", "repos", 
             "--topic", "gemonade-gem",
@@ -168,16 +215,15 @@ def search_gems(query):
         ]
         if query: cmd.append(query)
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True)
+            res = run_proc(cmd)
             if res.returncode == 0:
                 results = json.loads(res.stdout)
         except Exception: pass
     
-    # Method 2: GitHub API Fallback
     if not results:
+        log_debug("Searching via GitHub REST API...")
         api_query = "topic:gemonade-gem"
         if query: api_query += f" {query}"
-        # URL Encode
         params = urllib.parse.urlencode({'q': api_query, 'sort': 'stars', 'order': 'desc'})
         url = f"https://api.github.com/search/repositories?{params}"
         
@@ -228,18 +274,17 @@ def hydrate_gem(path):
 
     print_msg("🐍", f"Python dependencies detected for '{path.name}'. Hydrating environment...")
     
-    # Determine Python command
     py_cmd = sys.executable
     if python_version:
         if shutil.which(f"python{python_version}"):
             py_cmd = f"python{python_version}"
-            print_msg("🔍", f"Using requested Python version: {py_cmd}")
+            log_debug(f"Using requested Python version: {py_cmd}")
         else:
             print_msg("⚠️", f"Requested python{python_version} not found. Falling back to default.")
 
     venv_path = path / ".venv"
     try:
-        subprocess.run([py_cmd, "-m", "venv", str(venv_path)], check=True)
+        run_proc([py_cmd, "-m", "venv", str(venv_path)])
         pip_cmd = venv_path / "bin" / "pip"
         if not pip_cmd.exists():
             pip_cmd = venv_path / "Scripts" / "pip.exe"
@@ -247,10 +292,7 @@ def hydrate_gem(path):
         if not pip_cmd.exists():
             raise FileNotFoundError("pip not found in virtual environment.")
 
-        result = subprocess.run([str(pip_cmd), "install", "-r", str(req_file)], capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"Pip install failed:\n{result.stderr}")
-
+        run_proc([str(pip_cmd), "install", "-r", str(req_file)])
         print_msg("✅", "Virtual environment hydrated.")
         return True
 
@@ -284,14 +326,14 @@ def install_gem(source, config):
             if dest_path.exists():
                 shutil.rmtree(dest_path)
             print_msg("📦", f"Cloning {repo_url}...")
-            subprocess.run(["git", "clone", repo_url, str(dest_path)], check=True)
+            run_proc(["git", "clone", repo_url, str(dest_path)])
             shutil.rmtree(dest_path / ".git", ignore_errors=True)
 
-        # Manifest Renaming
         manifest = dest_path / "gem.json"
         if manifest.exists():
             try:
                 data = json.loads(manifest.read_text())
+                validate_manifest(data)
             except json.JSONDecodeError as e:
                 raise ValueError(f"Invalid JSON in gem.json: {e}")
 
@@ -323,7 +365,6 @@ def run_persona(persona, project_flag, scope, config, dry_run=False):
     session_dir.mkdir(parents=True, exist_ok=True)
     STATE_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Build System MD
     scope_md = f"# ⚠️ Active Access Scope: {scope.upper()}\n"
     if scope == "global":
         scope_md += "GLOBAL visibility granted. Access ALL sessions.\n"
@@ -332,14 +373,11 @@ def run_persona(persona, project_flag, scope, config, dry_run=False):
     else:
         scope_md += f"PROJECT isolation active for '{project_ctx}'.\n"
 
-    # --- V6 Memory Injection (The Recap) ---
-    # Read history.jsonl from the session dir
     ledger_path = session_dir / "history.jsonl"
     recent_history = ""
     if ledger_path.exists():
         try:
             lines = ledger_path.read_text().splitlines()
-            # Get last 5 entries
             last_5 = lines[-5:]
             recent_history = "\n# 🧠 Recent Memory (The Recap)\n"
             for line in last_5:
@@ -359,9 +397,6 @@ def run_persona(persona, project_flag, scope, config, dry_run=False):
     if core_persona_path.exists():
         system_md_content += core_persona_path.read_text() + "\n\n"
     
-    # Inject History BEFORE Scope so Scope is the final authority? 
-    # Or AFTER Core Persona?
-    # Best place: After Core, Before Scope/Persona specific instructions.
     if recent_history:
         system_md_content += recent_history
         
@@ -371,7 +406,6 @@ def run_persona(persona, project_flag, scope, config, dry_run=False):
     system_md_file = STATE_DIR / f"system_{persona}_{os.getpid()}.md"
     system_md_file.write_text(system_md_content)
 
-    # Env Prep
     env = os.environ.copy()
     env["GEMINI_SYSTEM_MD"] = str(system_md_file)
     env["GEMONADE_PROJECT"] = project_ctx
@@ -408,38 +442,12 @@ def run_persona(persona, project_flag, scope, config, dry_run=False):
         if system_md_file.exists(): system_md_file.unlink()
         saver = Path(config["G_SAVER_SCRIPT"])
         if saver.exists():
-            subprocess.run([sys.executable, str(saver), str(session_dir), "--project", project_ctx])
-        ingester = GEMONADE_HOME / "tools" / "ingest_memory.py"
-        if ingester.exists():
-            py_cmd = str(G_CORE_VENV / "bin" / "python3") if G_CORE_VENV.exists() else sys.executable
-            subprocess.run([py_cmd, str(ingester), "--project", project_ctx, "--persona", persona], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-
-# --- Memory Management ---
-def manage_memory(action, dry_run=False):
-    if action not in ["enable", "disable"]:
-        raise ValueError("Action must be 'enable' or 'disable'")
-
-    if dry_run:
-        return {"action": action, "target_venv": str(G_CORE_VENV)}
-
-    G_CORE_VENV.parent.mkdir(parents=True, exist_ok=True)
-    if not G_CORE_VENV.exists():
-        subprocess.run([sys.executable, "-m", "venv", str(G_CORE_VENV)], check=True)
-
-    pip_cmd = str(G_CORE_VENV / "bin" / "pip")
-    if action == "enable":
-        subprocess.run([pip_cmd, "install", "torch", "--index-url", "https://download.pytorch.org/whl/cpu"], check=True)
-        reqs = GEMONADE_HOME / "tools" / "requirements.txt"
-        if reqs.exists(): subprocess.run([pip_cmd, "install", "-r", str(reqs)], check=True)
-    else:
-        db_path = STATE_DIR / "chroma_db"
-        if db_path.exists(): shutil.rmtree(db_path)
-        subprocess.run([pip_cmd, "uninstall", "-y", "chromadb", "sentence-transformers"], check=False)
+            run_proc([sys.executable, str(saver), str(session_dir), "--project", project_ctx])
 
 # --- Main CLI ---
 def main():
-    config = load_config()
     parser = argparse.ArgumentParser(description="Gemonade: The Gemini CLI Persona Wrapper")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose output for debugging")
     subparsers = parser.add_subparsers(dest="command")
 
     run_p = subparsers.add_parser("run", help="Start a session")
@@ -453,9 +461,6 @@ def main():
     subparsers.add_parser("install", help="Install a Gem").add_argument("source")
     subparsers.add_parser("uninstall", help="Uninstall a Gem").add_argument("name")
     subparsers.add_parser("update", help="Update a Gem").add_argument("name")
-    mem = subparsers.add_parser("advanced-memory", help="Manage intelligence pack")
-    mem.add_argument("action", choices=["enable", "disable"])
-    mem.add_argument("--dry-run", action="store_true")
     
     search_p = subparsers.add_parser("search", help="Search GitHub for Gems")
     search_p.add_argument("query", nargs="?", default="")
@@ -464,13 +469,18 @@ def main():
     elif sys.argv[1] not in subparsers.choices and not sys.argv[1].startswith("-"): args = parser.parse_args(["run"] + sys.argv[1:])
     else: args = parser.parse_args()
 
+    # Apply Global Flags
+    FLAGS["verbose"] = args.verbose
+    config = load_config()
+
     try:
         if args.command == "run":
             state = run_persona(args.gem, args.project, args.scope, config, dry_run=args.dry_run)
             if args.dry_run: print(json.dumps(state, indent=2))
         elif args.command == "list":
             for cat, gems in get_gems_list(config).items():
-                print(f"{cat} (Private & Custom)" if cat == "LOCAL" else f"{cat} (Community Gems)" if cat == "INSTALLED" else f"{cat} (Built-in Standards)")
+                title = f"{cat} (Private & Custom)" if cat == "LOCAL" else f"{cat} (Community Gems)" if cat == "INSTALLED" else f"{cat} (Built-in Standards)"
+                print(title)
                 if not gems: print("  (none)")
                 else: 
                     for name, desc in gems: print(f"  - {name:<15} : {desc}")
@@ -488,13 +498,9 @@ def main():
             target = get_safe_installed_path(config, args.name)
             if target.exists():
                 print_msg("⬇️", f"Updating {args.name}...")
-                subprocess.run(["git", "pull"], cwd=target, check=True)
+                run_proc(["git", "pull"], cwd=target)
                 hydrate_gem(target)
             else: print_err(f"Gem '{args.name}' not found.")
-        elif args.command == "advanced-memory":
-            res = manage_memory(args.action, dry_run=args.dry_run)
-            if args.dry_run: print(json.dumps(res, indent=2))
-            else: print_msg("✅", f"Advanced Memory {args.action}d.")
         elif args.command == "config":
             for k, v in config.items(): print(f"{k:<25} = {v}")
         elif args.command == "search":

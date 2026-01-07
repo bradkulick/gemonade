@@ -2,6 +2,11 @@
 
 All notable changes to the Gemonade framework will be documented in this file.
 
+## [v4.2.6] - 2026-01-06 (The Memory Simplification Update)
+### Removed
+- **`recall.py` Command:** Removed the automated "Advanced Memory" tool and its associated command logic.
+- **Recall Roadmap:** Removed plans for a dedicated recall CLI command in favor of standard manual investigation tools (`list_directory`, `read_file`).
+
 ## [v4.2.5] - 2026-01-05 (The Hygienic Installer Update)
 ### Fixed
 - Fixed `gemonade install` to correctly strip `.git` directories when cloning from remote URLs, ensuring installed gems are treated as static packages.

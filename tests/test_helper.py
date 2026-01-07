@@ -55,10 +55,15 @@ class BaseGemonadeTest(unittest.TestCase):
     def create_gem(self, root, name, objective):
         gem_dir = root / name
         gem_dir.mkdir(parents=True, exist_ok=True)
-        (gem_dir / "gem.json").write_text(json.dumps({"name": name, "version": "0.1.0"}))
+        (gem_dir / "gem.json").write_text(json.dumps({
+            "name": name, 
+            "version": "0.1.0",
+            "description": objective
+        }))
         (gem_dir / "persona.md").write_text(f"# {name}\n- **Objective:** {objective}")
         (gem_dir / "tools").mkdir(exist_ok=True)
         return gem_dir
+
 
     def run_cli(self, args):
         """Helper to run the core CLI via subprocess."""
