@@ -17,7 +17,7 @@ While generic AI wrappers exist, Gemonade is purpose-built for the Google Gemini
 
 ### Prerequisites
 Gemonade is a wrapper around existing tools. Ensure you have the following installed:
-*   **Python 3.x** (for session management and tool environments)
+*   **Python 3.x** (Strict Requirement: The Core CLI is Python-based)
 *   **Node.js & npm**
 *   **Google Gemini CLI:**
     ```bash
@@ -94,6 +94,20 @@ Turn your Gem into a native, permanent Gemini CLI Extension.
 2.  Your gem is compiled into a native extension format in the `graduates/` folder.
 3.  Install it permanently: `gemini install extension graduates/my-gem`
 
+### 5. Testing & Verification
+Gemonade includes a comprehensive test suite to ensure stability and security.
+
+**Running the Tests:**
+To verify the framework's core logic, safety barriers, and lifecycle management:
+```bash
+python3 -m unittest discover tests
+```
+The suite covers:
+*   **Runtime Logic:** Verifies context detection and scope enforcement.
+*   **Security:** Confirms path traversal attacks are blocked.
+*   **Lifecycle:** Tests the full install/uninstall loop.
+*   **Dependency Management:** Verifies virtual environment creation logic.
+
 ## 🧠 Core Philosophy
 
 ### A. The "Gemonade" Metaphor
@@ -109,6 +123,7 @@ Gemonade treats every identity as a "Package"—a folder containing the persona'
 Every Gem is a self-contained directory governed by a `gem.json` manifest.
 *   **Isolation:** Gems that require Python libraries (like `requests` or `scapy`) get their own isolated virtual environment (`.venv`) automatically created at install time.
 *   **Portability:** You can zip up a Gem or push it to Git, and anyone else can install it with a single command.
+*   **Naming Convention:** Gem names must be alphanumeric (allowing `.`, `_`, `-`) and contain NO spaces or slashes. This is strictly enforced for security.
 
 ### D. Proactive Evolution ("The Pull Request")
 Gemonade is designed to be self-improving. If a persona identifies a limitation in its own instructions or tools, it is authorized to draft a "Pull Request"—a proposed code change that the user can accept to permanently upgrade the system's capabilities.

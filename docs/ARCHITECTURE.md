@@ -11,15 +11,17 @@ This repository contains the system logic and package definitions.
 ```text
 gemonade/
 ├── bin/
-│   └── gemonade               # The Launcher (Bash script)
+│   └── gemonade               # The Launcher (Bash Wrapper)
 ├── core/
-│   └── CORE_PERSONA.md        # Universal standards (Inherited by all Personas)
+│   ├── gemonade.py            # The Core CLI Logic (Python)
+│   └── CORE_PERSONA.md        # Universal standards
 ├── packages/                  # The Identity Packages
 │   ├── core/                  # Immutable System Personas (sys, general)
 │   ├── installed/             # Community/3rd-Party Gems (Git Clones)
 │   └── local/                 # User-Created Private Gems
 ├── knowledge/                 # The "Active State"
 │   └── sessions/              # Session Logs
+├── tests/                     # Integration & Unit Test Suite
 ├── user_tools/                # Global User Scripts
 └── tools/                     # System Maintenance Scripts
 ```
@@ -28,26 +30,28 @@ gemonade/
 Every persona is a self-contained directory within `packages/`.
 ```text
 packages/local/my-gem/
-├── gem.json                # (V2) The Manifest & Metadata
+├── gem.json                # The Manifest & Metadata
 ├── persona.md              # The Identity Prompt
-├── requirements.txt        # (V2) Python dependencies
-├── .venv/                  # (V2) Isolated Virtual Environment (Auto-generated)
+├── requirements.txt        # Python dependencies
+├── .venv/                  # Isolated Virtual Environment (Auto-generated)
 ├── tools/                  # (Optional) Python scripts specific to this persona
 └── blueprints/             # (Optional) Reference docs/knowledge
 ```
 
 ## 2. Core Components
 
-### A. The Launcher (`bin/gemonade`)
-The `gemonade` command is the single entry point. It orchestrates the session lifecycle:
+### A. The Core CLI (`core/gemonade.py`)
+The `gemonade` command is now a thin Bash wrapper that bootstraps the environment and hands off execution to the Python Core (`core/gemonade.py`). This architecture ensures robustness, type safety, and deeper integration.
 
-1.  **Resolution & Priority:** Identifies the requested persona by searching namespaces in specific order: `local` > `installed` > `core`.
-2.  **Hydration (V2):** Checks if the Gem has a `.venv` directory.
-    *   If yes, it prepends `.venv/bin` to the `$PATH` so `python3` calls use the isolated libraries.
-    *   If missing but `requirements.txt` exists, it warns the user or auto-hydrates (depending on command).
-3.  **Context Injection:** It dynamically concatenates `core/CORE_PERSONA.md` + `packages/.../persona.md`.
-4.  **Tool Discovery:** Prepend `tools/` to the session's `$PATH`.
-5.  **Execution:** Launches the native `gemini` CLI.
+**Key Responsibilities:**
+1.  **Resolution & Priority:** Identifies the requested persona by searching namespaces (`local` > `installed` > `core`).
+2.  **Hydration (V2):**
+    *   Creates isolated virtual environments (`.venv`) for Gems with dependencies.
+    *   Respects `python_version` in `gem.json` to ensure compatibility.
+    *   **Auto-Rollback:** Automatically cleans up corrupted environments if hydration fails.
+3.  **Context Injection:** Dynamically assembles the System Prompt (Core Standards + Scope Directive + Persona Instructions).
+4.  **Tool Discovery:** Prepends the Gem's `tools/` directory and `.venv/bin` to the `$PATH`.
+5.  **Execution:** Launches the native `gemini` CLI with the assembled context.
 
 ### B. The Memory Saver (`tools/save_session.py`)
 Standard terminal recording (`script`) captures "noise". Gemonade uses a custom Python hook that:
@@ -78,7 +82,8 @@ To enable distribution via `gemonade install`, a package must contain a `gem.jso
   "version": "1.0.0",
   "description": "Short description of the capability.",
   "author": "Your Name",
-  "python_dependencies": "requirements.txt"  // Optional. Triggers .venv creation.
+  "python_dependencies": "requirements.txt",
+  "python_version": "3.10"  // Optional. Request specific binary.
 }
 ```
 
@@ -110,7 +115,6 @@ Gemonade supports two methods for modifying behavior:
         {{LOAD: ../../../core/general/persona.md}}
         - **Extra Rule:** Always speak in Haiku.
         ```
-    *   *Note:* While Gemonade doesn't have a native macro language yet, users can manually inherit logic by referencing files or copying base instructions.
 
 ## 5. Lifecycle & Release Engineering
 
@@ -123,5 +127,22 @@ The `tools/gem_2_extension.py` utility allows Gems to "graduate" into native Gem
 
 ### B. Discovery & Publishing
 Gemonade treats GitHub as its decentralized package registry.
-*   **Search:** `gemonade search` uses the GitHub CLI (`gh`) to query repositories tagged with the `gemonade-gem` topic.
+*   **Search:** `gemonade search` uses a hybrid approach:
+    1.  Tries the GitHub CLI (`gh`) for authenticated, rate-limit-friendly queries.
+    2.  Falls back to the public GitHub API (via `urllib`) if `gh` is missing.
 *   **Publishing:** `tools/publish.py` automates the "bottling" process by handling SemVer version bumps, Git tagging, and applying the `gemonade-gem` topic to the repository for discovery.
+
+## 6. Security & Verification
+
+### A. Safety Barriers
+The Python Core implements strict input validation to prevent malicious behavior from imported Gems.
+*   **Path Containment:** All `install`, `uninstall`, and `update` operations are strictly confined to the `packages/installed/` directory. Path traversal attempts (e.g., `uninstall ../../etc/passwd`) are detected and blocked.
+*   **Naming Conventions:** Gem names are restricted to alphanumeric characters (plus `.`, `_`, `-`) to prevent shell injection or filesystem issues.
+
+### B. The Test Suite
+Gemonade includes a comprehensive test suite in `tests/` that verifies the framework's integrity without external side effects.
+*   **Structure:**
+    *   `test_units.py`: Verifies internal logic (config parsing, validation).
+    *   `test_integration.py`: Verifies the CLI lifecycle (install/run/uninstall) using a mock environment.
+    *   `test_search.py`: Verifies search logic and fallbacks.
+*   **Dry Runs:** The Core CLI supports a `--dry-run` flag that outputs the internal state (context, scope, prompt path) as JSON, allowing tests to verify logic without launching the heavy AI process.
