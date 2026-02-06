@@ -2,6 +2,22 @@
 
 All notable changes to the Gemonade framework will be documented in this file.
 
+## [v5.2.1] - 2026-02-06
+### Fixed
+- **Portability:** Updated `tools/cleanup_sessions.sh` to dynamically resolve the repository root instead of using hardcoded fallbacks to `~/gemini_knowledge`.
+- **Environment Hygiene:** Sanitized `~/.gemini/settings.json` to remove stale workspace references and absolute paths inherited from legacy versions.
+
+## [v5.0.0] - 2026-01-07
+### Changed
+- **Python Core Migration:** Replaced the legacy Bash-based logic with a robust Python Core (`core/gemonade.py`).
+- **Standardized Context:** Implemented unified session and project context management logic.
+- **Hydration Engine:** Added automated Python virtual environment hydration for Gems.
+
+## [v4.2.6] - 2026-01-06 (The Memory Simplification Update)
+### Removed
+- **`recall.py` Command:** Removed the automated "Advanced Memory" tool and its associated command logic.
+- **Recall Roadmap:** Removed plans for a dedicated recall CLI command in favor of standard manual investigation tools (`list_directory`, `read_file`).
+
 ## [v4.2.5] - 2026-01-05 (The Hygienic Installer Update)
 ### Fixed
 - Fixed `gemonade install` to correctly strip `.git` directories when cloning from remote URLs, ensuring installed gems are treated as static packages.

@@ -25,8 +25,12 @@ else
 fi
 
 # 3. Determine Directories
-# Use configured Knowledge Dir or fallback
-KNOWLEDGE_ROOT="${G_KNOWLEDGE_DIR:-$HOME/gemini_knowledge}"
+# Resolve Gemonade Root (where this script lives)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GEMONADE_REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Use configured Knowledge Dir or fallback to repo-relative knowledge/
+KNOWLEDGE_ROOT="${G_KNOWLEDGE_DIR:-$GEMONADE_REPO_ROOT/knowledge}"
 SESSION_ROOT="$KNOWLEDGE_ROOT/sessions"
 ARCHIVE_ROOT="$SESSION_ROOT/archive/$(date +%Y-%m)"
 

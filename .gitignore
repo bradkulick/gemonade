@@ -6,11 +6,23 @@
 # Python
 __pycache__/
 *.py[cod]
+.venv/
 
-# Gemonade Local State (if created inside repo)
+# Logs & Error Reports
+*.log
+ha_error.log
+
+# Personal Data & Telemetry
+telemetry_data/
+knowledge/
+*.apkg
+
+# Gemonade Local State
 .gemonade/
 state/
 secrets.env
+config.env
+.gemonade_config
 
 # Gemonade Packages
 packages/installed/*
@@ -18,16 +30,11 @@ packages/installed/*
 packages/local/*
 !packages/local/README.md
 
-# Knowledge Base
-knowledge/
-
-# User Tools: Ignore ALL by default, allow gitkeep so folder exists
+# User Tools & Private Scripts
 user_tools/*
 !user_tools/.gitkeep
+analyze_log.py
 
-# Backups
+# Backups & Archives
 versions/
-
-# User Config (should not be in repo, but just in case)
-config.env
-.gemonade_config
+archive/

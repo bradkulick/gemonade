@@ -1,2 +1,5 @@
-chromadb>=0.4.0
-sentence-transformers>=2.2.0
+# Requirements for Gemonade Intelligence Pack (V6)
+# We are moving towards a Text-First model, so heavy AI libs are removed.
+# Keeping it minimal.
+python-dotenv
+# Note: chromadb/torch are no longer required for V6 Recap Memory.
