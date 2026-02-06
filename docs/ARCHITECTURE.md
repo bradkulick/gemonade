@@ -6,8 +6,7 @@ This document details the technical implementation of the Gemonade Framework. It
 
 Gemonade adopts a "Unified Package" architecture, treating all identities—from core system admins to community extensions—as standardized packages called **Gems**.
 
-### A. The Framework (`gemonade/`)
-This repository contains the system logic and package definitions.
+### A. The Framework Layout
 ```text
 gemonade/
 ├── bin/
@@ -20,129 +19,99 @@ gemonade/
 │   ├── installed/             # Community/3rd-Party Gems (Git Clones)
 │   └── local/                 # User-Created Private Gems
 ├── knowledge/                 # The "Active State"
-│   └── sessions/              # Session Logs
-├── tests/                     # Integration & Unit Test Suite
-├── user_tools/                # Global User Scripts
+│   └── sessions/              # Session Logs & Recaps
+├── user_tools/                # Global User Scripts (Git-Ignored)
 └── tools/                     # System Maintenance Scripts
 ```
 
-### B. The Gem Model (Package)
-Every persona is a self-contained directory within `packages/`.
-```text
-packages/local/my-gem/
-├── gem.json                # The Manifest & Metadata
-├── persona.md              # The Identity Prompt
-├── requirements.txt        # Python dependencies
-├── .venv/                  # Isolated Virtual Environment (Auto-generated)
-├── tools/                  # (Optional) Python scripts specific to this persona
-└── blueprints/             # (Optional) Reference docs/knowledge
-```
+> **Principle: Repository-Centricity**
+> Gemonade uses repo-relative paths to ensure portability and zero-configuration setups across diverse Linux environments. By containing the state, knowledgebase, and tools within the repository, the framework remains functional immediately after a `git clone` without requiring external directory provisioning.
 
-## 2. Core Components
+---
 
-### A. The Core CLI (`core/gemonade.py`)
-The `gemonade` command is now a thin Bash wrapper that bootstraps the environment and hands off execution to the Python Core (`core/gemonade.py`). This architecture ensures robustness, type safety, and deeper integration.
+## 2. The Core Engine
+
+### A. The Python Core CLI (`core/gemonade.py`)
+The `gemonade` command is a thin Bash wrapper that bootstraps the environment and hands off execution to the Python Core.
 
 **Key Responsibilities:**
-1.  **Resolution & Priority:** Identifies the requested persona by searching namespaces (`local` > `installed` > `core`).
-2.  **Hydration (V2):**
-    *   Creates isolated virtual environments (`.venv`) for Gems with dependencies.
-    *   Respects `python_version` in `gem.json` to ensure compatibility.
-    *   **Auto-Rollback:** Automatically cleans up corrupted environments if hydration fails.
-3.  **Context Injection:** Dynamically assembles the System Prompt (Core Standards + Scope Directive + Persona Instructions).
-4.  **Tool Discovery:** Prepends the Gem's `tools/` directory and `.venv/bin` to the `$PATH`.
-5.  **Execution:** Launches the native `gemini` CLI with the assembled context.
+1.  **Resolution & Priority:** Identifies the requested persona by searching namespaces in order of specificity (`local` > `installed` > `core`).
+2.  **Hydration:** Creates isolated virtual environments (`.venv`) for Gems and provides automatic rollback for failed environment builds.
+3.  **Context Injection:** Dynamically assembles the System Prompt from Core Standards, Scope Directives, and Persona instructions.
+4.  **Tool Discovery:** Prepends Gem-specific `tools/` and `.venv/bin` to the `$PATH` to expose scripts to the AI.
 
-### B. The Memory Saver (`tools/save_session.py`)
-Standard terminal recording (`script`) captures "noise". Gemonade uses a custom Python hook that:
-1.  Parses the internal JSON logs from the Gemini CLI.
-2.  Extracts the clean conversation (User Prompt + AI Response).
-3.  Formats "Thought Processes" into collapsible HTML/Markdown details.
-4.  Saves the clean file to `knowledge/sessions/[persona]/[project_context]/`.
+> **Principle: Python-Powered Orchestration**
+> The core framework is implemented in Python to provide robust error handling, type safety, and sophisticated security validations (such as path containment) that are critical for managing a modular package ecosystem.
 
-### C. Memory Access Scopes (V4.1)
-Gemonade implements "Contextual Boundaries" to prevent session bleed and ensure data integrity. These boundaries are controlled via the `--scope` flag.
+---
 
-| Mode | Scope | Visibility Boundary | Default Use Case |
+## 3. Text-First Memory
+
+Gemonade prioritizes a "Text-First" memory model over complex database abstractions.
+
+### A. The Recap Model (`tools/save_session.py`)
+At the end of every session, the system parses the clean conversation, formats thought processes into collapsible details, and appends a structured entry to a `history.jsonl` ledger.
+
+> **Principle: The File IS The Database**
+> Gemonade rejects heavy Vector Database dependencies in favor of human-readable text for three reasons:
+> 1.  **Zero-Dependency:** No heavy libraries or external API keys are required for memory retrieval.
+> 2.  **Privacy:** 100% of the conversation history remains local.
+> 3.  **Auditability:** Memory is stored in plain text, making it searchable by standard Linux tools (`grep`, `find`) and verifiable by humans.
+
+---
+
+## 4. Contextual Scoping
+
+To maintain high precision and prevent "hallucination bleed" between unrelated tasks, Gemonade uses the `--scope` flag to set visibility boundaries.
+
+| Mode | Scope | Visibility Boundary | Default? |
 | :--- | :--- | :--- | :--- |
-| **Project** | `project` | Restricted to `sessions/{persona}/{project_context}/` | Daily development, isolated tasks (Default). |
-| **Persona** | `persona` | Access to all projects within the current Persona. | Cross-project reference, library knowledge. |
-| **Global** | `global` | Unrestricted access to all sessions across all personas. | System administration, meta-analysis. |
+| **Project** | `project` | Isolated to `sessions/{persona}/{project_context}/` | **Yes** |
+| **Persona** | `persona` | Access to all projects within the current Persona. | No |
+| **Global** | `global` | Unrestricted access across all personas. | No |
 
-The launcher dynamically injects a "Scope Directive" into the system prompt based on the active mode, guiding the agent's file browsing and retrieval behavior.
+> **Principle: Domain Isolation**
+> Scoping ensures that the AI only retrieves information relevant to the current logical domain, preventing it from incorrectly applying details from one project to another, unless explicitly instructed otherwise (e.g., via the `--scope` flag or direct command).
 
-## 3. The Gemonade Package Standard (GPS)
+---
 
-To enable distribution via `gemonade install`, a package must contain a `gem.json` manifest in its root.
+## 5. Workflow & Extension
 
-### Specification
-```json
-{
-  "name": "gem-name",
-  "version": "1.0.0",
-  "description": "Short description of the capability.",
-  "author": "Your Name",
-  "python_dependencies": "requirements.txt",
-  "python_version": "3.10"  // Optional. Request specific binary.
-}
-```
+### A. The "System Admin" Persona (`sys`)
+The built-in `sys` persona acts as the framework's Architect and Meta-Manager. 
 
-### Lifecycle Commands
-*   **`install <url>`:** Clones the repo, reads `gem.json`, and runs `python -m venv .venv && pip install -r requirements.txt`.
-*   **`update <name>`:** Pulls the latest git changes and re-runs the pip install step.
-*   **`uninstall <name>`:** Deletes the package directory (clean removal).
+**Key Responsibilities:**
+1.  **Lifecycle Advisor:** It determines the best architectural fit for a request (e.g., deciding when a utility should be a stateless Extension vs. a stateful Gem).
+2.  **Factory Manager:** It scaffolds new Gems (local or installable) and Extensions, ensuring they comply with the Gemonade Package Standard (GPS).
+3.  **Packaging Engineer:** It manages the transition from a "Local Gem" used for personal prototyping to a "Shareable Package" ready for community distribution.
 
-## 4. Workflow & Extension
+### B. Extending vs. Overriding
+1.  **Override (Shadowing):** Higher-priority namespaces (e.g., `local`) can override lower-priority ones.
+    *   *Rationale:* This allows users to customize or fix community-sourced Gems without modifying the upstream source code.
+2.  **Extension (Inheritance):** Personas can import the base logic of other personas using relative paths.
+    *   *Rationale:* This enables persona-inheritance where new identities can build upon existing behavioral standards.
 
-### The "System Admin" Persona (`sys`)
-Gemonade includes a built-in "Meta-Persona" called `sys`. It has explicit knowledge of this architecture.
-*   **Role:** Architect & Maintainer.
-*   **Capabilities:**
-    *   It acts as a "Gem Factory," scaffolding new packages compliant with the GPS.
-    *   It performs "Compatibility Checks" to ensure user requests fit the CLI paradigm.
+---
 
-### Extending vs. Overriding
-Gemonade supports two methods for modifying behavior:
+## 6. Lifecycle: The Incubator Model
 
-1.  **Override (Shadowing):**
-    *   Creating a package with the same name in a higher-priority namespace (e.g., `packages/local/aws`) completely hides the lower-priority version (`packages/installed/aws`).
-    *   *Constraint:* You cannot override `core` packages (`sys`, `general`).
+Gemonade serves as a rapid-prototyping environment for AI capabilities. 
 
-2.  **Extension (Inheritance):**
-    *   Create a new package (e.g., `packages/local/my-general`) and reference the original in the prompt:
-        ```markdown
-        # My General
-        {{LOAD: ../../../core/general/persona.md}}
-        - **Extra Rule:** Always speak in Haiku.
-        ```
+1.  **The Local Gem:** A persona is created in `packages/local/` for rapid prototyping and stateful local use.
+2.  **Packaging:** The `sys` persona refines the Gem, ensuring it has a valid `gem.json` and `requirements.txt` for distribution.
+3.  **Graduation:** Use `tools/gem_2_extension.py` to convert a mature Gem into a native Gemini CLI Extension.
 
-## 5. Lifecycle & Release Engineering
+> **Principle: Pilot vs. Co-Pilot**
+> - **Gems (The Pilot):** Best for focused roles requiring long-term memory, deep state, and a distinct identity.
+> - **Extensions (The Co-Pilot):** Best for stateless, global utilities that should be available in any conversation via `@` handles.
 
-V3 introduced a formal pipeline for moving Gems from local prototypes to production-ready extensions.
+---
 
-### A. The Incubator (Gem-to-Extension)
-The `tools/gem_2_extension.py` utility allows Gems to "graduate" into native Gemini CLI Extensions. 
-*   **Transformation:** It refactors the Gemonade-specific `persona.md` and `gem.json` into the extension-native `GEMINI.md` and `gemini-extension.json`.
-*   **Isolation:** It bundles dependencies and scripts while excluding framework-specific metadata.
-
-### B. Discovery & Publishing
-Gemonade treats GitHub as its decentralized package registry.
-*   **Search:** `gemonade search` uses a hybrid approach:
-    1.  Tries the GitHub CLI (`gh`) for authenticated, rate-limit-friendly queries.
-    2.  Falls back to the public GitHub API (via `urllib`) if `gh` is missing.
-*   **Publishing:** `tools/publish.py` automates the "bottling" process by handling SemVer version bumps, Git tagging, and applying the `gemonade-gem` topic to the repository for discovery.
-
-## 6. Security & Verification
+## 7. Security & Verification
 
 ### A. Safety Barriers
-The Python Core implements strict input validation to prevent malicious behavior from imported Gems.
-*   **Path Containment:** All `install`, `uninstall`, and `update` operations are strictly confined to the `packages/installed/` directory. Path traversal attempts (e.g., `uninstall ../../etc/passwd`) are detected and blocked.
-*   **Naming Conventions:** Gem names are restricted to alphanumeric characters (plus `.`, `_`, `-`) to prevent shell injection or filesystem issues.
+*   **Path Containment:** All lifecycle operations are strictly confined to the `packages/installed/` directory to prevent unauthorized filesystem access.
+*   **Naming Conventions:** Gem names are restricted to safe alphanumeric characters to prevent shell injection.
 
 ### B. The Test Suite
-Gemonade includes a comprehensive test suite in `tests/` that verifies the framework's integrity without external side effects.
-*   **Structure:**
-    *   `test_units.py`: Verifies internal logic (config parsing, validation).
-    *   `test_integration.py`: Verifies the CLI lifecycle (install/run/uninstall) using a mock environment.
-    *   `test_search.py`: Verifies search logic and fallbacks.
-*   **Dry Runs:** The Core CLI supports a `--dry-run` flag that outputs the internal state (context, scope, prompt path) as JSON, allowing tests to verify logic without launching the heavy AI process.
+The integration and unit tests in `tests/` leverage the `--dry-run` flag to verify the framework's internal state (context, environment, and paths) without executing the heavy AI process.
