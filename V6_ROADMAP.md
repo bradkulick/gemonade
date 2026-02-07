@@ -1,4 +1,9 @@
-# Gemonade V6 Roadmap: The "Text-First" Evolution
+# Gemonade V6 Roadmap: The "Text-First" Evolution (ARCHIVED)
+
+**Status:** COMPLETED / ARCHIVED
+**Transition:** The architectural goals defined here have been fulfilled. Active operational development has moved to the **V7_ROADMAP.md**.
+
+---
 
 **Goal:** Eliminate the heavy "Intelligence Pack" (PyTorch/Chroma) entirely by leveraging Gemonade's strongest asset: its clean, structured file system.
 
