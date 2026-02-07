@@ -27,6 +27,21 @@ gemonade/
 > **Principle: Repository-Centricity**
 > Gemonade uses repo-relative paths to ensure portability and zero-configuration setups across diverse Linux environments. By containing the state, knowledgebase, and tools within the repository, the framework remains functional immediately after a `git clone` without requiring external directory provisioning.
 
+### B. The Gem Model
+Every persona is a self-contained directory within `packages/`.
+```text
+packages/local/my-gem/
+├── gem.json                # The Manifest & Metadata
+├── persona.md              # The Identity Prompt
+├── requirements.txt        # Python dependencies
+├── .venv/                  # Isolated Virtual Environment (Auto-generated)
+├── tools/                  # (Optional) Python scripts specific to this persona
+└── blueprints/             # (Optional) Reference docs/knowledge
+```
+
+> **Principle: Encapsulation**
+> By making every Gem self-contained—including its own isolated virtual environment and tools—we ensure that an identity can be shared between Gemonade installations without conflicting with other personas or system-wide dependencies.
+
 ---
 
 ## 2. The Core Engine
@@ -39,9 +54,6 @@ The `gemonade` command is a thin Bash wrapper that bootstraps the environment an
 2.  **Hydration:** Creates isolated virtual environments (`.venv`) for Gems and provides automatic rollback for failed environment builds.
 3.  **Context Injection:** Dynamically assembles the System Prompt from Core Standards, Scope Directives, and Persona instructions.
 4.  **Tool Discovery:** Prepends Gem-specific `tools/` and `.venv/bin` to the `$PATH` to expose scripts to the AI.
-
-> **Principle: Python-Powered Orchestration**
-> The core framework is implemented in Python to provide robust error handling, type safety, and sophisticated security validations (such as path containment) that are critical for managing a modular package ecosystem.
 
 ---
 
@@ -71,29 +83,53 @@ To maintain high precision and prevent "hallucination bleed" between unrelated t
 | **Global** | `global` | Unrestricted access across all personas. | No |
 
 > **Principle: Domain Isolation**
-> Scoping ensures that the AI only retrieves information relevant to the current logical domain, preventing it from incorrectly applying details from one project to another, unless explicitly instructed otherwise (e.g., via the `--scope` flag or direct command).
+> Scoping ensures that the AI only retrieves information relevant to the current logical domain, preventing it from incorrectly applying details from one project to another, unless explicitly instructed otherwise.
 
 ---
 
-## 5. Workflow & Extension
+## 5. The Gemonade Package Standard (GPS)
+
+To enable distribution via `gemonade install`, a package must comply with the GPS by containing a `gem.json` manifest in its root.
+
+### A. Manifest Specification
+```json
+{
+  "name": "gem-name",
+  "version": "1.0.0",
+  "description": "Short description of the capability.",
+  "author": "Your Name",
+  "python_dependencies": "requirements.txt",
+  "python_version": "3.10"  // Optional. Request specific binary.
+}
+```
+
+### B. Lifecycle Operations
+*   **`install <url>`:** Clones the repository, validates the manifest, and hydrates the virtual environment.
+*   **`update <name>`:** Synchronizes the local clone with the remote source and refreshes dependencies.
+*   **`uninstall <name>`:** Performs a clean removal of the Gem directory and its isolated state.
+
+> **Principle: Automated Lifecycle Management**
+> Standardizing the manifest allows the framework to treat personas as managed software packages. This enables automated installation and dependency resolution, effectively turning Gemonade into a package manager for AI capabilities.
+
+---
+
+## 6. Workflow & Extension
 
 ### A. The "System Admin" Persona (`sys`)
 The built-in `sys` persona acts as the framework's Architect and Meta-Manager. 
 
 **Key Responsibilities:**
 1.  **Lifecycle Advisor:** It determines the best architectural fit for a request (e.g., deciding when a utility should be a stateless Extension vs. a stateful Gem).
-2.  **Factory Manager:** It scaffolds new Gems (local or installable) and Extensions, ensuring they comply with the Gemonade Package Standard (GPS).
+2.  **Factory Manager:** It scaffolds new Gems (local or installable) and Extensions, ensuring they comply with the GPS.
 3.  **Packaging Engineer:** It manages the transition from a "Local Gem" used for personal prototyping to a "Shareable Package" ready for community distribution.
 
 ### B. Extending vs. Overriding
 1.  **Override (Shadowing):** Higher-priority namespaces (e.g., `local`) can override lower-priority ones.
-    *   *Rationale:* This allows users to customize or fix community-sourced Gems without modifying the upstream source code.
 2.  **Extension (Inheritance):** Personas can import the base logic of other personas using relative paths.
-    *   *Rationale:* This enables persona-inheritance where new identities can build upon existing behavioral standards.
 
 ---
 
-## 6. Lifecycle: The Incubator Model
+## 7. Lifecycle: The Incubator Model
 
 Gemonade serves as a rapid-prototyping environment for AI capabilities. 
 
@@ -101,13 +137,9 @@ Gemonade serves as a rapid-prototyping environment for AI capabilities.
 2.  **Packaging:** The `sys` persona refines the Gem, ensuring it has a valid `gem.json` and `requirements.txt` for distribution.
 3.  **Graduation:** Use `tools/gem_2_extension.py` to convert a mature Gem into a native Gemini CLI Extension.
 
-> **Principle: Pilot vs. Co-Pilot**
-> - **Gems (The Pilot):** Best for focused roles requiring long-term memory, deep state, and a distinct identity.
-> - **Extensions (The Co-Pilot):** Best for stateless, global utilities that should be available in any conversation via `@` handles.
-
 ---
 
-## 7. Security & Verification
+## 8. Security & Verification
 
 ### A. Safety Barriers
 *   **Path Containment:** All lifecycle operations are strictly confined to the `packages/installed/` directory to prevent unauthorized filesystem access.
