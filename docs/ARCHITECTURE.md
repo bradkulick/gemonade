@@ -119,13 +119,23 @@ To enable distribution via `gemonade install`, a package must comply with the GP
 The built-in `sys` persona acts as the framework's Architect and Meta-Manager. 
 
 **Key Responsibilities:**
-1.  **Lifecycle Advisor:** It determines the best architectural fit for a request (e.g., deciding when a utility should be a stateless Extension vs. a stateful Gem).
-2.  **Factory Manager:** It scaffolds new Gems (local or installable) and Extensions, ensuring they comply with the GPS.
-3.  **Packaging Engineer:** It manages the transition from a "Local Gem" used for personal prototyping to a "Shareable Package" ready for community distribution.
+1.  **Lifecycle Advisor:** It determines the best architectural fit for a request, deciding when a utility should be a stateless **Extension** vs. a stateful **Gem**.
+2.  **Factory Manager:** It scaffolds new local Gems for private prototyping and can upgrade them to shareable, installable Gems or Extensions for community distribution.
+3.  **Governance:** It enforces the GPS and ensures framework integrity during system-wide refactors.
 
 ### B. Extending vs. Overriding
-1.  **Override (Shadowing):** Higher-priority namespaces (e.g., `local`) can override lower-priority ones.
-2.  **Extension (Inheritance):** Personas can import the base logic of other personas using relative paths.
+Gemonade supports two methods for modifying behavior:
+
+1.  **Override (Shadowing):** Higher-priority namespaces (e.g., `local`) can override lower-priority ones (`installed`). For example, creating `packages/local/aws/persona.md` will completely hide `packages/installed/aws/persona.md`. 
+    *   **Constraint:** You cannot override `core` packages (e.g., `sys`, `general`) to ensure framework stability.
+2.  **Extension (Inheritance):** Personas can import the base logic of other personas using relative paths and then chain additional instructions.
+    *   **Implementation Example:**
+        ```markdown
+        # My General
+        {{LOAD: ../../../core/general/persona.md}}
+        - **Extra Rule:** Always speak in Haiku.
+        ```
+    *   *Note:* While Gemonade doesn't have a native macro language, users can manually inherit logic by referencing files or copying base instructions.
 
 ---
 
@@ -133,9 +143,13 @@ The built-in `sys` persona acts as the framework's Architect and Meta-Manager.
 
 Gemonade serves as a rapid-prototyping environment for AI capabilities. 
 
-1.  **The Local Gem:** A persona is created in `packages/local/` for rapid prototyping and stateful local use.
+1.  **The Local Gem:** A persona is created in `packages/local/` (often via `sys`) for rapid prototyping and stateful local use.
 2.  **Packaging:** The `sys` persona refines the Gem, ensuring it has a valid `gem.json` and `requirements.txt` for distribution.
 3.  **Graduation:** Use `tools/gem_2_extension.py` to convert a mature Gem into a native Gemini CLI Extension.
+
+> **Principle: Pilot vs. Co-Pilot**
+> - **Gems (The Pilot):** Best for focused roles requiring long-term memory, deep state, and a distinct identity.
+> - **Extensions (The Co-Pilot):** Best for stateless, global utilities that should be available in any conversation via `@` handles.
 
 ---
 
